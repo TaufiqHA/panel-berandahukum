@@ -120,6 +120,7 @@ class PenjualanController extends Controller
             $toko_id = Auth::user()->toko_id;
         }
         $penjualan = array(
+            'user_id' => Auth::user()->id ?? Auth::id(),
             'date' => date('Y-m-d', strtotime($request->date)),
             'kode_penjualan' => $request->ref_number,
             'nama_pembeli' => $nama_pembeli,
@@ -155,6 +156,7 @@ class PenjualanController extends Controller
                         DetailPenjualan::create([
                             'penjualan_id' => $create->id,
                             'gudang_barang_id' => $value->id,
+                            'serial_number_id' => is_numeric($value->serial_number_id) ? $value->serial_number_id : null,
                             'barang_id' => $barangs[0],
                             'discount' => $barangs[5],
                             'price' => $barangs[4],
@@ -164,14 +166,23 @@ class PenjualanController extends Controller
                     GudangBarang::whereIn('id', $dataBarang)->delete();
                 }else{
                     foreach ($barangs[3] as $k => $barang) {
+                        $gb = GudangBarang::where('id', $barang)->orWhere('serial_number_id', $barang)->first();
+                        $gb_id = $gb ? $gb->id : (is_numeric($barang) ? $barang : null);
+                        $sn_id = ($gb && is_numeric($gb->serial_number_id)) ? $gb->serial_number_id : (is_numeric($barang) ? $barang : null);
+
                         DetailPenjualan::create([
                             'penjualan_id' => $create->id,
-                            'gudang_barang_id' => $barang,
+                            'gudang_barang_id' => $gb_id,
+                            'serial_number_id' => $sn_id,
                             'barang_id' => $barangs[0],
                             'discount' => $barangs[5],
                             'price' => $barangs[4],
                         ]);    
-                        GudangBarang::where('id', $barang)->delete();
+                        if ($gb_id) {
+                            GudangBarang::where('id', $gb_id)->delete();
+                        } elseif ($barang) {
+                            GudangBarang::where('serial_number_id', $barang)->delete();
+                        }
                     }
                 }
             }
@@ -358,8 +369,11 @@ class PenjualanController extends Controller
             // Restore GudangBarang for all current details
             $details = DetailPenjualan::where('penjualan_id', $id)->get();
             foreach ($details as $detail) {
+                if ($detail->gudang_barang_id) {
+                    GudangBarang::where('id', $detail->gudang_barang_id)->update(['status' => 1]);
+                }
                 if ($detail->serial_number_id) {
-                    GudangBarang::where('serial_number_id', $detail->serial_number_id)->update(['status' => 1]);
+                    GudangBarang::where('id', $detail->serial_number_id)->orWhere('serial_number_id', $detail->serial_number_id)->update(['status' => 1]);
                 }
             }
             // Delete current details
@@ -396,8 +410,9 @@ class PenjualanController extends Controller
                             DetailPenjualan::create([
                                 'penjualan_id' => $id,
                                 'barang_id' => $barang_id,
+                                'gudang_barang_id' => $value->id,
                                 'discount' => $discount,
-                                'serial_number_id' => $value->serial_number_id,
+                                'serial_number_id' => is_numeric($value->serial_number_id) ? $value->serial_number_id : null,
                                 'price' => $price,
                             ]);
                             $dataBarang[] = $value->id;
@@ -408,14 +423,23 @@ class PenjualanController extends Controller
                     } else {
                         // Specified serial numbers
                         foreach ($sn_array as $brg) {
+                            $gb = GudangBarang::where('id', $brg)->orWhere('serial_number_id', $brg)->first();
+                            $gb_id = $gb ? $gb->id : (is_numeric($brg) ? $brg : null);
+                            $sn_id = ($gb && is_numeric($gb->serial_number_id)) ? $gb->serial_number_id : (is_numeric($brg) ? $brg : null);
+
                             DetailPenjualan::create([
                                 'penjualan_id' => $id,
                                 'barang_id' => $barang_id,
+                                'gudang_barang_id' => $gb_id,
                                 'discount' => $discount,
-                                'serial_number_id' => $brg,
+                                'serial_number_id' => $sn_id,
                                 'price' => $price,
                             ]);    
-                            GudangBarang::where('serial_number_id', $brg)->update(['status' => 2]);
+                            if ($gb_id) {
+                                GudangBarang::where('id', $gb_id)->update(['status' => 2]);
+                            } elseif ($brg) {
+                                GudangBarang::where('serial_number_id', $brg)->update(['status' => 2]);
+                            }
                         }
                     }
                 }

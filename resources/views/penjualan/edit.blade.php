@@ -320,12 +320,26 @@
                 }else{
                     discount = v.discount;
                 }
-                let id_serial_number = v.serial_number ? v.serial_number.id : (v.serial_number_id || '');
-                let name_serial_number = v.serial_number ? v.serial_number.serial_number : '';
+                let id_serial_number = '';
+                let name_serial_number = '';
+
+                if (v.serial_number && v.serial_number.serial_number) {
+                    name_serial_number = v.serial_number.serial_number;
+                    id_serial_number = v.gudang_barang_id || v.serial_number.id;
+                } else if (v.gudang_barang) {
+                    name_serial_number = (typeof v.gudang_barang.serial_number === 'string' && v.gudang_barang.serial_number)
+                        ? v.gudang_barang.serial_number
+                        : (v.gudang_barang.serial_number_id || (v.gudang_barang.serial_number && v.gudang_barang.serial_number.serial_number ? v.gudang_barang.serial_number.serial_number : ''));
+                    id_serial_number = v.gudang_barang_id || v.gudang_barang.id || '';
+                } else if (v.serial_number_id) {
+                    id_serial_number = v.gudang_barang_id || v.serial_number_id;
+                    name_serial_number = v.serial_number_id;
+                }
+
                 let id_barang = v.barang ? v.barang.id : (v.barang_id || '');
                 let nama_barang = v.barang ? v.barang.nama_product : '';
-                let wajib_sn = v.barang && typeof v.barang.wajib_serial_number !== 'undefined' ? v.barang.wajib_serial_number : (id_serial_number ? 1 : 0);
-                let disabled = (wajib_sn == 1) ? '' : 'disabled';
+                let wajib_sn = v.barang && typeof v.barang.wajib_serial_number !== 'undefined' ? v.barang.wajib_serial_number : ((id_serial_number || name_serial_number) ? 1 : 0);
+                let disabled = (wajib_sn == 1 || id_serial_number || name_serial_number) ? '' : 'disabled';
                 let data_subtotal = v.price;
                 if(v.discount != '' && v.discount != null){
                     data_subtotal = v.price - (v.price * v.discount / 100);

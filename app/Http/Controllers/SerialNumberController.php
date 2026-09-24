@@ -56,18 +56,37 @@ class SerialNumberController extends Controller
     {
         $user = Auth::user();
         $search = $request->term;
-        $query = GudangBarang::where('barang_id', $id_barang)->where('status', 1)->select('id', 'serial_number as text');
+        $query = GudangBarang::where('barang_id', $id_barang)
+            ->where('status', 1)
+            ->where('toko_id', $id_toko)
+            ->whereNotNull('serial_number_id')
+            ->where('serial_number_id', '!=', '');
 
-        $query->where('toko_id', $id_toko);
-
-        if($search != ''){
-            $query->where('serial_number', 'LIKE', "%$search%");
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('serial_number_id', 'LIKE', "%$search%")
+                  ->orWhereHas('serial_number', function ($sn) use ($search) {
+                      $sn->where('serial_number', 'LIKE', "%$search%");
+                  });
+            });
         }
-        $data =  $query->get();
-        $results = array(
+
+        $items = $query->get();
+        $data = [];
+        foreach ($items as $item) {
+            $text = $item->serial_number_id;
+            if ($item->serial_number && !empty($item->serial_number->serial_number)) {
+                $text = $item->serial_number->serial_number;
+            }
+            $data[] = [
+                'id' => $item->id,
+                'text' => $text,
+            ];
+        }
+
+        return response()->json([
             "results" => $data,
-        );
-        return response()->json($results);
+        ]);
     }
 
     /**
