@@ -309,11 +309,11 @@
     @endif
     getDetailBarang();
     function getDetailBarang() {
-        let id =  {{$penjualan->id}};
+        let id = {{$penjualan->id}};
+        $('#detail-barang').html('');
         let detail_barang = '';
         if(data.detail_penjualan && data.detail_penjualan.length > 0){
             $.each(data.detail_penjualan, function (i,v) {
-                $('#detail-barang').html('');
                 let discount;
                 if(v.discount == null){
                     discount = '';
@@ -322,126 +322,133 @@
                 }
                 let id_serial_number = v.serial_number ? v.serial_number.id : (v.serial_number_id || '');
                 let name_serial_number = v.serial_number ? v.serial_number.serial_number : '';
-                let disabled = '';
-                let keterangan = v.keterangan || '';
-                let detail_barang_id = v.id;
                 let id_barang = v.barang ? v.barang.id : (v.barang_id || '');
                 let nama_barang = v.barang ? v.barang.nama_product : '';
+                let wajib_sn = v.barang && typeof v.barang.wajib_serial_number !== 'undefined' ? v.barang.wajib_serial_number : (id_serial_number ? 1 : 0);
+                let disabled = (wajib_sn == 1) ? '' : 'disabled';
                 let data_subtotal = v.price;
                 if(v.discount != '' && v.discount != null){
                     data_subtotal = v.price - (v.price * v.discount / 100);
                 }
-                let url_toko_edit = "{{ url('barang/toko') }}/"+$('#nama_toko').val();
-                let url_serial_number = "{{ url('serial-number/id_toko/') }}/"+$('#nama_toko').val()+"/id_barang/"+id_barang;
-                let url_toko = "{{ url('barang/select') }}";
-            detail_barang += '<div class="form-row row-detail-barang" id="row_barang_'+row_edit+'" data-id="'+row_edit+'" data-edit="'+row_edit+'">'+
-                '<div class="form-group col-md-1">'+
-                    '<label>&nbsp;</label><br>'+
-                    '<button type="button" class="btn btn-light btn-move-barang" style="cursor: move;"><i class="fas fa-arrows-alt"></i></button>'+
-                '</div>'+
-                '<input type="hidden" name="id" id="id_'+row_edit+'" value="'+v.id+'" class="edit_detail_barang barang_existing">'+
-                '<div class="form-group col-md-2">'+
-                    '<label>Pilih Barang</label>'+
-                    '<select class="form-control edit_detail_barang nama_barang" data-id="'+row_edit+'" name="nama_barang" id="nama_barang_'+row_edit+'" required=""></select>'+
-                    '<div class="invalid-feedback feedback-nama_barang_'+row_edit+'">'+
-                        'Barang harus dipilih.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-1">'+
-                    '<label>Stock</label>'+
-                    '<input type="text" name="stock_toko_awal" id="stock_toko_awal_'+row_edit+'" class="form-control edit_detail_barang stock_toko_awal" readonly>'+
-                    '<div class="invalid-feedback feedback-stock_toko_awal_'+row_edit+'">'+
-                        'Stock Toko Awal harus dipilih.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-1">'+
-                    '<label>Jumlah</label>'+
-                    '<input value="1" type="number" min="0" value="0" name="jumlah" id="jumlah_'+row_edit+'" class="form-control edit_detail_barang jumlah" required data-id="'+row_edit+'" readonly>'+
-                    '<div class="invalid-feedback feedback-jumlah_'+row_edit+'">'+
-                        'Jumlah harus diisi.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-2">'+
-                    '<label>Pilih Serial Number</label>'+
-                    '<select class="form-control edit_detail_barang serial_number" name="serial_number" id="serial_number_'+row_edit+'" required="" '+disabled+'></select>'+
-                    '<div class="invalid-feedback feedback-serial_number_'+row_edit+'">'+
-                        'Serial Number harus dipilih.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-2">'+
-                    '<label>Harga</label>'+
-                    '<input value="'+v.price.toLocaleString('en-US')+'" data-id="'+row_edit+'" type="text" name="harga" id="harga_'+row_edit+'" class="form-control edit_detail_barang money-format harga" required>'+
-                    '<div class="invalid-feedback feedback-harga_'+row_edit+'">'+
-                        'Harga harus diisi.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-1">'+
-                    '<label>Discount %</label>'+
-                    '<input value="'+discount+'" data-id="'+row_edit+'" type="text" name="discount" id="discount_'+row_edit+'" class="form-control edit_detail_barang discount">'+
-                    '<div class="invalid-feedback feedback-discount_'+row_edit+'">'+
-                        'Discount harus diisi.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-1">'+
-                    '<label>Jumlah</label>'+
-                    '<input type="text" name="subtotal" id="subtotal_'+row_edit+'" class="form-control edit_detail_barang subtotal" value="'+data_subtotal.toLocaleString('en-US')+'" readonly>'+
-                    '<div class="invalid-feedback feedback-keterangan_'+row_edit+'">'+
-                        'Keterangan harus dipilih.'+
-                    '</div>'+
-                '</div>'+
-                '<div class="form-group col-md-1">'+
-                    '<label>Action</label>'+
-                '<br>'+
-                    '<button data-id="'+v.id+'" data-row="'+row_edit+'" type="button" class="btn btn-icon btn-danger btn-delete-barang"><i class="far fas fa-trash"></i></button>'+
-                '</div>'+
-                '<script type="text/javascript">'+
-                    '$("#nama_barang_'+row_edit+'").empty().append("<option selected value='+id_barang+'>'+nama_barang+'  </option>");'+
-                    '$("#serial_number_'+row_edit+'").empty().append("<option selected value='+id_serial_number+'>'+name_serial_number+'  </option>");'+
-                '$(".nama_barang").select2({'+
-                    'placeholder: {'+
-                        'id: -1,'+
-                        'text: "Pilih Barang"'+
-                    '},'+
-                    'minimumInputLength: 3,'+
-                    'ajax: {'+
-                        'url: "'+url_toko+'",'+
-                        'dataType: "json",'+
-                        'cache: true,'+
-                        'async: false,'+
-                        'data: function(params) {'+
-                            'return {'+
-                                'term: params.term || "",'+
-                                'page: params.page || 1'+
-                            '}'+
-                        '},'+
-                    '}'+
-                '});'+
-                '$("#serial_number_'+row_edit+'").select2({'+
-                    'placeholder:"Pilih Serial Number",'+
-                    'ajax: {'+
-                        'url: "'+url_serial_number+'",'+
-                        'dataType: "json",'+
-                        'cache: true,'+
-                        'data: function(params) {'+
-                            'return {'+
-                                'term: params.term || "",'+
-                                'page: params.page || 1'+
-                            '}'+
-                        '},'+
-                    '}'+
-                '});'+
-                '$(".select2-container").css("width","100%");'+
-            '</script'+'>'+
-            '</div>';
-            
-            let databarangid = {}
-            databarangid.id_toko = $('#nama_toko').val();
-            databarangid.id_barang = id_barang;
-            getTotalBarang(databarangid, row_edit);
 
-            row_edit ++;
-        });
-        $('#detail-barang').append(detail_barang);
+                detail_barang += '<div class="form-row row-detail-barang" id="row_barang_'+row_edit+'" data-id="'+row_edit+'" data-edit="'+row_edit+'">'+
+                    '<div class="form-group col-md-1">'+
+                        '<label>&nbsp;</label><br>'+
+                        '<button type="button" class="btn btn-light btn-move-barang" style="cursor: move;"><i class="fas fa-arrows-alt"></i></button>'+
+                    '</div>'+
+                    '<input type="hidden" name="id" id="id_'+row_edit+'" value="'+v.id+'" class="edit_detail_barang barang_existing">'+
+                    '<div class="form-group col-md-2">'+
+                        '<label>Pilih Barang</label>'+
+                        '<select class="form-control edit_detail_barang nama_barang" data-id="'+row_edit+'" name="nama_barang" id="nama_barang_'+row_edit+'" required="">'+
+                            (id_barang ? '<option selected value="'+id_barang+'">'+nama_barang+'</option>' : '')+
+                        '</select>'+
+                        '<div class="invalid-feedback feedback-nama_barang_'+row_edit+'">'+
+                            'Barang harus dipilih.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-1">'+
+                        '<label>Stock</label>'+
+                        '<input type="text" name="stock_toko_awal" id="stock_toko_awal_'+row_edit+'" class="form-control edit_detail_barang stock_toko_awal" readonly>'+
+                        '<div class="invalid-feedback feedback-stock_toko_awal_'+row_edit+'">'+
+                            'Stock Toko Awal harus dipilih.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-1">'+
+                        '<label>Jumlah</label>'+
+                        '<input value="1" type="number" min="0" value="0" name="jumlah" id="jumlah_'+row_edit+'" class="form-control edit_detail_barang jumlah" required data-id="'+row_edit+'" readonly>'+
+                        '<div class="invalid-feedback feedback-jumlah_'+row_edit+'">'+
+                            'Jumlah harus diisi.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-2">'+
+                        '<label>Pilih Serial Number</label>'+
+                        '<select class="form-control edit_detail_barang serial_number" name="serial_number" id="serial_number_'+row_edit+'" required="" '+disabled+'>'+
+                            (id_serial_number ? '<option selected value="'+id_serial_number+'">'+name_serial_number+'</option>' : '')+
+                        '</select>'+
+                        '<div class="invalid-feedback feedback-serial_number_'+row_edit+'">'+
+                            'Serial Number harus dipilih.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-2">'+
+                        '<label>Harga</label>'+
+                        '<input value="'+v.price.toLocaleString('en-US')+'" data-id="'+row_edit+'" type="text" name="harga" id="harga_'+row_edit+'" class="form-control edit_detail_barang money-format harga" required>'+
+                        '<div class="invalid-feedback feedback-harga_'+row_edit+'">'+
+                            'Harga harus diisi.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-1">'+
+                        '<label>Discount %</label>'+
+                        '<input value="'+discount+'" data-id="'+row_edit+'" type="text" name="discount" id="discount_'+row_edit+'" class="form-control edit_detail_barang discount">'+
+                        '<div class="invalid-feedback feedback-discount_'+row_edit+'">'+
+                            'Discount harus diisi.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-1">'+
+                        '<label>Jumlah</label>'+
+                        '<input type="text" name="subtotal" id="subtotal_'+row_edit+'" class="form-control edit_detail_barang subtotal" value="'+data_subtotal.toLocaleString('en-US')+'" readonly>'+
+                        '<div class="invalid-feedback feedback-keterangan_'+row_edit+'">'+
+                            'Keterangan harus dipilih.'+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="form-group col-md-1">'+
+                        '<label>Action</label>'+
+                    '<br>'+
+                        '<button data-id="'+v.id+'" data-row="'+row_edit+'" type="button" class="btn btn-icon btn-danger btn-delete-barang"><i class="far fas fa-trash"></i></button>'+
+                    '</div>'+
+                '</div>';
+                
+                let currentRow = row_edit;
+                let databarangid = {
+                    id_toko: $('#nama_toko').val(),
+                    id_barang: id_barang
+                };
+                getTotalBarang(databarangid, currentRow);
+
+                row_edit ++;
+            });
+            $('#detail-barang').append(detail_barang);
+
+            // Initialize select2 after appending rows to DOM
+            for (let r = 1; r < row_edit; r++) {
+                let currentBarangId = $('#nama_barang_' + r).val();
+                let url_serial_number = "{{ url('serial-number/id_toko/') }}/"+$('#nama_toko').val()+"/id_barang/"+currentBarangId;
+                let url_toko = "{{ url('barang/select') }}";
+
+                $('#nama_barang_' + r).select2({
+                    placeholder: {
+                        id: -1,
+                        text: "Pilih Barang"
+                    },
+                    minimumInputLength: 3,
+                    ajax: {
+                        url: url_toko,
+                        dataType: "json",
+                        cache: true,
+                        data: function(params) {
+                            return {
+                                term: params.term || "",
+                                page: params.page || 1
+                            };
+                        }
+                    }
+                });
+
+                $('#serial_number_' + r).select2({
+                    placeholder: "Pilih Serial Number",
+                    ajax: {
+                        url: url_serial_number,
+                        dataType: "json",
+                        cache: true,
+                        data: function(params) {
+                            return {
+                                term: params.term || "",
+                                page: params.page || 1
+                            };
+                        }
+                    }
+                });
+            }
+            $(".select2-container").css("width","100%");
         }
         $('#save').attr('data-id', id);
         $('#draft').attr('data-id', id);

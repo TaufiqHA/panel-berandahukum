@@ -384,7 +384,11 @@ class PenjualanController extends Controller
                     }
 
                     // Handle serial numbers
-                    if (empty($serial_numbers)) {
+                    $sn_array = is_array($serial_numbers) ? array_filter($serial_numbers, function($val) {
+                        return $val !== null && $val !== '';
+                    }) : (!empty($serial_numbers) ? [$serial_numbers] : []);
+
+                    if (empty($sn_array)) {
                         // Not serialized or auto-pick
                         $query = GudangBarang::where('barang_id', $barang_id)->where('toko_id', $toko_id)->where('status', 1)->limit($jumlah)->get();
                         $dataBarang = array();
@@ -403,7 +407,6 @@ class PenjualanController extends Controller
                         }
                     } else {
                         // Specified serial numbers
-                        $sn_array = is_array($serial_numbers) ? $serial_numbers : [$serial_numbers];
                         foreach ($sn_array as $brg) {
                             DetailPenjualan::create([
                                 'penjualan_id' => $id,
