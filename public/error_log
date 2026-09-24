@@ -1,0 +1,1 @@
+[05-Nov-2024 10:43:14 Asia/Jakarta] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/berandah/subdomains/panel.berandahukum.com/vendor/laravel/framework/src/Illuminate/Encryption/Encrypter.php on line 84
