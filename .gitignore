@@ -1,0 +1,36 @@
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Temporary & Log files
+*.log
+error_log
+files_current.txt
+comparison_results.json
+/storage/framework/laravel-excel/*
+!/storage/framework/laravel-excel/.gitignore
+
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor & IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
