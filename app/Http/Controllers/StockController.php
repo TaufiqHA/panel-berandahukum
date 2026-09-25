@@ -125,9 +125,20 @@ class StockController extends Controller
      */
     public function update(Request $request)
     {
-        $data = array('serial_number' => $request->serial_number);
-        $update = GudangBarang::where('id', $request->id)->update($data);
-        return response()->json($update);
+        $gudangBarang = GudangBarang::find($request->id);
+        if (empty($gudangBarang)) {
+            return response()->json(false);
+        }
+
+        if ($gudangBarang->serial_number_id && $gudangBarang->serial_number) {
+            $gudangBarang->serial_number->update(['serial_number' => $request->serial_number]);
+        } else {
+            $serialNumber = SerialNumber::create(['serial_number' => $request->serial_number]);
+            $gudangBarang->serial_number_id = $serialNumber->id;
+            $gudangBarang->save();
+        }
+
+        return response()->json(true);
     }
 
     /**
@@ -191,8 +202,15 @@ class StockController extends Controller
     public function get(Request $request)
     {
 
-        $serial_number = GudangBarang::where('id', '!=', $request->id)->where('serial_number', $request->serial_number)->first();
-        return response()->json($serial_number);
+        $serial_number = GudangBarang::with('serial_number')
+            ->where('id', '!=', $request->id)
+            ->whereHas('serial_number', function ($query) use ($request) {
+                $query->where('serial_number', $request->serial_number);
+            })->first();
+
+        return response()->json([
+            'serial_number' => optional(optional($serial_number)->serial_number)->serial_number,
+        ]);
     }
 
     public function stock($id)
@@ -204,9 +222,12 @@ class StockController extends Controller
 
     public function serialNumber($id)
     {
-        $query = GudangBarang::with(['toko', 'barang'])->where('barang_id', $id)->orderBy('toko_id');
+        $query = GudangBarang::with(['toko', 'barang', 'serial_number'])->where('barang_id', $id)->orderBy('toko_id');
         $data = $query->get();
-        return Datatables::of($data)->addIndexColumn()->addColumn('action', function ($row) use ($id) {
+        return Datatables::of($data)->addIndexColumn()->addColumn('serial_number', function ($row) {
+            return optional($row->serial_number)->serial_number;
+        })->addColumn('action', function ($row) use ($id) {
+            $serial_number = optional($row->serial_number)->serial_number;
             $btn = '';
             $user = Auth::user();
             if($user->status != 1){
@@ -214,7 +235,7 @@ class StockController extends Controller
                     $btn = '<div class="button"></div>';
                 // }
             }else{
-                $btn = '<div class="button"><button class="btn btn-icon btn-info btn-edit-sn" data-barang-id="'.$id.'" data-id="'.$row->id.'" data-sn="'.$row->serial_number.'"><i class="far fa-edit"></i></button> <button data-barang-id="'.$id.'" data-id="'.$row->id.'" href="#" class="btn btn-icon btn-danger btn-delete-sn"><i class="far fas fa-trash"></i></button></div>';
+                $btn = '<div class="button"><button class="btn btn-icon btn-info btn-edit-sn" data-barang-id="'.$id.'" data-id="'.$row->id.'" data-sn="'.$serial_number.'"><i class="far fa-edit"></i></button> <button data-barang-id="'.$id.'" data-id="'.$row->id.'" href="#" class="btn btn-icon btn-danger btn-delete-sn"><i class="far fas fa-trash"></i></button></div>';
             }
             return $btn;
         })->rawColumns(['action'])->make(true);

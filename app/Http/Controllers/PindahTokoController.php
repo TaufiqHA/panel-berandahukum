@@ -264,11 +264,22 @@ class PindahTokoController extends Controller
     {
         $pindahGudang = PindahGudang::with(['toko', 'toko_to', 'data_detail_barang', 'data_detail_serial_number', 'detail_barang_keluar', 'barang_pindah'])->where('id',$id)->first();
         for ($i=0; $i <sizeof($pindahGudang->barang_pindah); $i++) { 
-            $data_serial_number[$i] = DetailBarangKeluar::with('gudang_barang')->select('gudang_barang_id')->where('barang_id', $pindahGudang->barang_pindah[$i]->pivot->barang_id)->where('pindah_gudang_id', $pindahGudang->barang_pindah[$i]->pivot->pindah_gudang_id)->get()->toArray();
-            for ($j=0; $j <sizeof($data_serial_number[$i]) ; $j++) { 
-                $data_sn[$i][$j] = $data_serial_number[$i][$j]['gudang_barang']['serial_number'];
+            $detail_barang_keluar = DetailBarangKeluar::with(['gudang_barang.serial_number', 'serial_number'])
+                ->where('barang_id', $pindahGudang->barang_pindah[$i]->pivot->barang_id)
+                ->where('pindah_gudang_id', $pindahGudang->barang_pindah[$i]->pivot->pindah_gudang_id)
+                ->get();
+
+            $data_sn[$i] = [];
+            foreach ($detail_barang_keluar as $detail) {
+                $serial_number = optional($detail->serial_number)->serial_number;
+                if (empty($serial_number)) {
+                    $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
+                }
+                if (!empty($serial_number)) {
+                    $data_sn[$i][] = $serial_number;
+                }
             }
-            $pindahGudang->barang_pindah[$i]->pivot['serial_number'] = implode(", ", array_filter($data_sn[$i]));
+            $pindahGudang->barang_pindah[$i]->pivot['serial_number'] = implode(", ", $data_sn[$i]);
         }
         $pindahGudang['nama_pengirim'] = Auth::user()->name;
         $pdf = PDF::loadView('pindah-toko.barang-keluar.print', $pindahGudang);
@@ -280,11 +291,22 @@ class PindahTokoController extends Controller
         $pindahGudang = PindahGudang::with(['toko', 'toko_to', 'data_detail_barang', 'data_detail_serial_number', 'detail_barang_keluar', 'barang_pindah'])->where('id',$id)->first();
 
         for ($i=0; $i <sizeof($pindahGudang->barang_pindah); $i++) { 
-            $data_serial_number[$i] = DetailBarangKeluar::with('gudang_barang')->select('gudang_barang_id')->where('barang_id', $pindahGudang->barang_pindah[$i]->pivot->barang_id)->where('pindah_gudang_id', $pindahGudang->barang_pindah[$i]->pivot->pindah_gudang_id)->get()->toArray();
-            for ($j=0; $j <sizeof($data_serial_number[$i]) ; $j++) { 
-                $data_sn[$i][$j] = $data_serial_number[$i][$j]['gudang_barang']['serial_number'];
+            $detail_barang_keluar = DetailBarangKeluar::with(['gudang_barang.serial_number', 'serial_number'])
+                ->where('barang_id', $pindahGudang->barang_pindah[$i]->pivot->barang_id)
+                ->where('pindah_gudang_id', $pindahGudang->barang_pindah[$i]->pivot->pindah_gudang_id)
+                ->get();
+
+            $data_sn[$i] = [];
+            foreach ($detail_barang_keluar as $detail) {
+                $serial_number = optional($detail->serial_number)->serial_number;
+                if (empty($serial_number)) {
+                    $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
+                }
+                if (!empty($serial_number)) {
+                    $data_sn[$i][] = $serial_number;
+                }
             }
-            $pindahGudang->barang_pindah[$i]->pivot['serial_number'] = implode(", ", array_filter($data_sn[$i]));
+            $pindahGudang->barang_pindah[$i]->pivot['serial_number'] = implode(", ", $data_sn[$i]);
         }
         $pindahGudang['nama_pengirim'] = Auth::user()->name;
         $pdf = PDF::loadView('pindah-toko.barang-keluar.print', $pindahGudang);

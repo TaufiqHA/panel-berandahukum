@@ -592,11 +592,22 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with(['toko', 'detail_penjualan.barang', 'barang_pembelian'])->where('id', $id)->first();
         for ($i=0; $i <sizeof($penjualan->barang_pembelian); $i++) { 
-            $data_serial_number[$i] = DetailPenjualan::with('gudang_barang')->select('gudang_barang_id')->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)->where('penjualan_id', $penjualan->barang_pembelian[$i]->pivot->penjualan_id)->get()->toArray();
-            for ($j=0; $j <sizeof($data_serial_number[$i]) ; $j++) { 
-                $data_sn[$i][$j] = $data_serial_number[$i][$j]['gudang_barang']['serial_number'];
+            $detail_penjualan = DetailPenjualan::with(['gudang_barang.serial_number', 'serial_number'])
+                ->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)
+                ->where('penjualan_id', $penjualan->barang_pembelian[$i]->pivot->penjualan_id)
+                ->get();
+
+            $data_sn[$i] = [];
+            foreach ($detail_penjualan as $detail) {
+                $serial_number = optional($detail->serial_number)->serial_number;
+                if (empty($serial_number)) {
+                    $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
+                }
+                if (!empty($serial_number)) {
+                    $data_sn[$i][] = $serial_number;
+                }
             }
-            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(", ", array_filter($data_sn[$i]));
+            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(", ", $data_sn[$i]);
         }
         $setting = Setting::where('toko_id', $penjualan->toko_id)->first();
         if(!empty($setting)):
@@ -613,11 +624,22 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with(['toko', 'detail_penjualan.barang', 'barang_pembelian'])->where('id', $id)->first();
         for ($i=0; $i <sizeof($penjualan->barang_pembelian); $i++) { 
-            $data_serial_number[$i] = DetailPenjualan::with('gudang_barang')->select('gudang_barang_id')->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)->where('penjualan_id', $penjualan->barang_pembelian[$i]->pivot->penjualan_id)->get()->toArray();
-            for ($j=0; $j <sizeof($data_serial_number[$i]) ; $j++) { 
-                $data_sn[$i][$j] = $data_serial_number[$i][$j]['gudang_barang']['serial_number'];
+            $detail_penjualan = DetailPenjualan::with(['gudang_barang.serial_number', 'serial_number'])
+                ->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)
+                ->where('penjualan_id', $penjualan->barang_pembelian[$i]->pivot->penjualan_id)
+                ->get();
+
+            $data_sn[$i] = [];
+            foreach ($detail_penjualan as $detail) {
+                $serial_number = optional($detail->serial_number)->serial_number;
+                if (empty($serial_number)) {
+                    $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
+                }
+                if (!empty($serial_number)) {
+                    $data_sn[$i][] = $serial_number;
+                }
             }
-            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(", ", array_filter($data_sn[$i]));
+            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(", ", $data_sn[$i]);
         }
         $pdf = PDF::loadView('penjualan.surat-jalan', $penjualan);
         return $pdf->stream();
