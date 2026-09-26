@@ -588,27 +588,70 @@ class PenjualanController extends Controller
         }
     }
 
+    private function resolveSerialNumber($detail)
+    {
+        $serial_number = $this->serialNumberValue($detail->serial_number_id);
+        if (!empty($serial_number)) {
+            return $serial_number;
+        }
+
+        $gudang_barang = $detail->gudang_barang;
+        if ($gudang_barang) {
+            $serial_number = $this->serialNumberValue($gudang_barang->serial_number_id);
+            if (!empty($serial_number)) {
+                return $serial_number;
+            }
+
+            $serial_number = optional($gudang_barang->serial_number)->serial_number;
+            if (!empty($serial_number)) {
+                return $serial_number;
+            }
+        }
+
+        return null;
+    }
+
+    private function serialNumberValue($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        $serial_number = SerialNumber::withTrashed()->find($value);
+        if ($serial_number && !empty($serial_number->serial_number)) {
+            return $serial_number->serial_number;
+        }
+
+        // Legacy data stores the serial value directly instead of a foreign key.
+        return is_scalar($value) ? (string) $value : null;
+    }
+
+    private function attachSerialNumbers($penjualan)
+    {
+        foreach ($penjualan->barang_pembelian as $barang) {
+            $detail_penjualan = DetailPenjualan::with(['gudang_barang.serial_number', 'serial_number'])
+                ->where('barang_id', $barang->pivot->barang_id)
+                ->where('penjualan_id', $barang->pivot->penjualan_id)
+                ->get();
+
+            $data_sn = [];
+            foreach ($detail_penjualan as $detail) {
+                $serial_number = $this->resolveSerialNumber($detail);
+                if (!empty($serial_number)) {
+                    $data_sn[] = $serial_number;
+                }
+            }
+
+            $barang->pivot['serial_number'] = implode(", ", $data_sn);
+        }
+
+        return $penjualan;
+    }
+
     public function download($id)
     {
         $penjualan = Penjualan::with(['toko', 'detail_penjualan.barang', 'barang_pembelian'])->where('id', $id)->first();
-        for ($i=0; $i <sizeof($penjualan->barang_pembelian); $i++) { 
-            $detail_penjualan = DetailPenjualan::with(['gudang_barang.serial_number', 'serial_number'])
-                ->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)
-                ->where('penjualan_id', $penjualan->barang_pembelian[$i]->pivot->penjualan_id)
-                ->get();
-
-            $data_sn[$i] = [];
-            foreach ($detail_penjualan as $detail) {
-                $serial_number = optional($detail->serial_number)->serial_number;
-                if (empty($serial_number)) {
-                    $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
-                }
-                if (!empty($serial_number)) {
-                    $data_sn[$i][] = $serial_number;
-                }
-            }
-            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(", ", $data_sn[$i]);
-        }
+        $this->attachSerialNumbers($penjualan);
         $setting = Setting::where('toko_id', $penjualan->toko_id)->first();
         if(!empty($setting)):
 			$penjualan['cara_pembayaran']= $setting->cara_pembayaran;
@@ -623,24 +666,7 @@ class PenjualanController extends Controller
     public function surat_jalan($id)
     {
         $penjualan = Penjualan::with(['toko', 'detail_penjualan.barang', 'barang_pembelian'])->where('id', $id)->first();
-        for ($i=0; $i <sizeof($penjualan->barang_pembelian); $i++) { 
-            $detail_penjualan = DetailPenjualan::with(['gudang_barang.serial_number', 'serial_number'])
-                ->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)
-                ->where('penjualan_id', $penjualan->barang_pembelian[$i]->pivot->penjualan_id)
-                ->get();
-
-            $data_sn[$i] = [];
-            foreach ($detail_penjualan as $detail) {
-                $serial_number = optional($detail->serial_number)->serial_number;
-                if (empty($serial_number)) {
-                    $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
-                }
-                if (!empty($serial_number)) {
-                    $data_sn[$i][] = $serial_number;
-                }
-            }
-            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(", ", $data_sn[$i]);
-        }
+        $this->attachSerialNumbers($penjualan);
         $pdf = PDF::loadView('penjualan.surat-jalan', $penjualan);
         return $pdf->stream();
     }
