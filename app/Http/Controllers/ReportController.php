@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ReportExport;
+use App\Models\BarangKeluar;
 use App\Models\DetailBarangKeluar;
 use App\Models\GudangBarang;
 use App\Models\Penjualan;
@@ -123,6 +124,63 @@ class ReportController extends Controller
 
         return [
             'headings' => ['No', 'No Ref', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Pembeli', 'Alamat Pembeli', 'No Telepon', 'Harga Terjual', 'Sales'],
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{headings: array<int, string>, rows: array<int, array<int, mixed>>}
+     */
+    public function barangKeluar(array $filters): array
+    {
+        [$from, $to] = $this->range($filters);
+
+        $query = BarangKeluar::with([
+            'toko',
+            'data_barang_keluar.barang',
+            'data_barang_keluar.gudang_barang.serial_number',
+        ])->whereBetween('date', [$from, $to]);
+
+        if (! empty($filters['nama_toko'])) {
+            $query->whereIn('toko_id', (array) $filters['nama_toko']);
+        }
+
+        if (! empty($filters['nama_barang'])) {
+            $query->whereIn('id', function ($sub) use ($filters): void {
+                $sub->select('barang_keluar_id')
+                    ->from('data_barang_keluars')
+                    ->whereIn('barang_id', (array) $filters['nama_barang'])
+                    ->groupBy('barang_keluar_id');
+            });
+        }
+
+        $rows = [];
+        $no = 1;
+
+        foreach ($query->orderBy('date', 'desc')->get() as $barangKeluar) {
+            foreach ($barangKeluar->data_barang_keluar as $detail) {
+                $serial = $detail->gudang_barang?->serial_number?->serial_number ?? '';
+                $harga = (float) $detail->price - ((float) $detail->price * (float) $detail->discount / 100);
+
+                $rows[] = [
+                    $no++,
+                    $barangKeluar->kode_barang_keluar,
+                    $detail->barang?->nama_product,
+                    $serial,
+                    $barangKeluar->toko?->nama_toko,
+                    $barangKeluar->date ? date('d F Y', strtotime($barangKeluar->date)) : '',
+                    $barangKeluar->nama_penerima,
+                    $barangKeluar->alamat_penerima,
+                    $barangKeluar->telepon_penerima,
+                    $harga,
+                    $barangKeluar->nama_sales,
+                ];
+            }
+        }
+
+        return [
+            'headings' => ['No', 'No Ref', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Penerima', 'Alamat Penerima', 'No Telepon', 'Harga', 'Sales'],
             'rows' => $rows,
         ];
     }
@@ -440,6 +498,7 @@ class ReportController extends Controller
         $report = match ($type) {
             'barang-masuk' => $this->barangMasuk($filters),
             'penjualan' => $this->penjualan($filters),
+            'barang-keluar' => $this->barangKeluar($filters),
             'pindah-barang' => $this->pindahBarang($filters),
             'stock' => $this->stock($filters),
             'laba-rugi' => $this->labaRugi($filters),
@@ -450,6 +509,7 @@ class ReportController extends Controller
         $filename = match ($type) {
             'barang-masuk' => 'Report Barang Masuk',
             'penjualan' => 'Report Penjualan',
+            'barang-keluar' => 'Report Barang Keluar',
             'pindah-barang' => 'Report Pindah Barang',
             'stock' => 'Report Stock',
             'laba-rugi' => 'Report Laba Rugi',

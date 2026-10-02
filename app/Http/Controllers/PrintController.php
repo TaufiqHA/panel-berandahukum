@@ -75,34 +75,44 @@ class PrintController extends Controller
 
     public function barangKeluarPrint($id)
     {
-        $penjualan = BarangKeluar::with(['toko', 'barang', 'serial_number', 'barang_pembelian'])->where('id', $id)->first();
+        $penjualan = BarangKeluar::with(['toko', 'barang_pembelian'])->where('id', $id)->first();
 
-        return view('barang-keluar.print', compact('penjualan'));
+        $this->attachBarangKeluarSerialNumbers($penjualan);
+
+        $pdf = Pdf::loadView('barang-keluar.print', $penjualan->toArray());
+
+        return $pdf->stream();
     }
 
     public function barangKeluarSuratJalan($id)
     {
         $penjualan = BarangKeluar::with(['toko', 'data_barang_keluar.barang', 'barang_pembelian'])->where('id', $id)->first();
 
-        for ($i = 0; $i < count($penjualan->barang_pembelian); $i++) {
-            $detail_barang_keluar = DataBarangKeluar::with('gudang_barang.serial_number')
-                ->where('barang_id', $penjualan->barang_pembelian[$i]->pivot->barang_id)
-                ->where('barang_keluar_id', $penjualan->barang_pembelian[$i]->pivot->barang_keluar_id)
-                ->get();
-
-            $data_sn[$i] = [];
-            foreach ($detail_barang_keluar as $detail) {
-                $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
-                if (! empty($serial_number) && ! in_array($serial_number, $data_sn[$i])) {
-                    $data_sn[$i][] = $serial_number;
-                }
-            }
-            $penjualan->barang_pembelian[$i]->pivot['serial_number'] = implode(', ', $data_sn[$i]);
-        }
+        $this->attachBarangKeluarSerialNumbers($penjualan);
 
         $pdf = Pdf::loadView('barang-keluar.surat-jalan', $penjualan->toArray());
 
         return $pdf->stream();
+    }
+
+    private function attachBarangKeluarSerialNumbers(BarangKeluar $barangKeluar): void
+    {
+        foreach ($barangKeluar->barang_pembelian as $barang) {
+            $detail_barang_keluar = DataBarangKeluar::with('gudang_barang.serial_number')
+                ->where('barang_id', $barang->pivot->barang_id)
+                ->where('barang_keluar_id', $barang->pivot->barang_keluar_id)
+                ->get();
+
+            $serial_numbers = [];
+            foreach ($detail_barang_keluar as $detail) {
+                $serial_number = optional(optional($detail->gudang_barang)->serial_number)->serial_number;
+                if (! empty($serial_number) && ! in_array($serial_number, $serial_numbers)) {
+                    $serial_numbers[] = $serial_number;
+                }
+            }
+
+            $barang->pivot['serial_number'] = implode(', ', $serial_numbers);
+        }
     }
 
     public function pindahTokoOutDownload($id)

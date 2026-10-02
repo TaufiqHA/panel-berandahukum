@@ -10,7 +10,7 @@ class PindahBarangReport extends ReportPage
 
     protected static ?string $title = 'Laporan Perpindahan Barang';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static array $filterFields = [
         ['key' => 'tanggalAwal', 'label' => 'Tanggal Awal', 'type' => 'date'],

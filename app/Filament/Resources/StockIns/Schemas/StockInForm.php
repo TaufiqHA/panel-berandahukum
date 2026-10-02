@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StockIns\Schemas;
 
+use App\Models\Supplier;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -40,18 +41,16 @@ class StockInForm
                             ->default(now())
                             ->columnSpan(4)
                             ->required(),
-                        TextInput::make('supplier')
+                        Select::make('supplier')
                             ->label('Supplier')
-                            ->maxLength(255)
+                            ->options(fn (): array => Supplier::query()
+                                ->orderBy('nama_supplier')
+                                ->pluck('nama_supplier', 'nama_supplier')
+                                ->all())
+                            ->searchable()
                             ->columnSpan(4),
                         TextInput::make('harga_beli')
                             ->label('Harga Beli')
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->default(0)
-                            ->columnSpan(4),
-                        TextInput::make('harga_jual')
-                            ->label('Harga Jual')
                             ->numeric()
                             ->prefix('Rp')
                             ->default(0)

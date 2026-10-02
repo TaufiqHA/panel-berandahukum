@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BarangController;
 use App\Http\Controllers\PrintController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -23,4 +24,6 @@ Route::middleware('auth')->group(function () {
     Route::get('pindah-toko/in/print/{id}', [PrintController::class, 'pindahTokoInDownload'])->name('print.pindah-toko.in');
 
     Route::get('report/export/{type}', [ReportController::class, 'export'])->name('report.export');
+
+    Route::get('barang/export/pdf', [BarangController::class, 'exportPdf'])->name('barang.export.pdf');
 });

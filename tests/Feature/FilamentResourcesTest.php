@@ -34,6 +34,7 @@ test('master resource pages are accessible', function (string $path) {
     '/admin/search-barang',
     '/admin/barang-masuk-report',
     '/admin/penjualan-report',
+    '/admin/barang-keluar-report',
     '/admin/pindah-barang-report',
     '/admin/stock-report',
     '/admin/laba-rugi-report',

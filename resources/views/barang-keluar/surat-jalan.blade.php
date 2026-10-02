@@ -1141,9 +1141,9 @@
 	<div class="row" style="height: 200px;">
 		<div class="column left" style="margin-left: -15px;">
 			@if($toko['image'] != '')
-			<img src="{{ asset('public/uploads').'/'.$toko['image'] }}" alt="" width="140">
+			<img src="{{ public_path('uploads').'/'.$toko['image'] }}" alt="" width="140">
 			@else
-			<img src="{{ asset('assets/logo_melinda.png') }}"
+			<img src="{{ public_path('assets/logo_melinda.png') }}"
 				alt="" width="140">
 			@endif
 			<p class="p9 ft3 text-kotak">{{ $toko['nama_toko']}}</p>

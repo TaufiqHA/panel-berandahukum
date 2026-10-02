@@ -10,7 +10,7 @@ class StockReport extends ReportPage
 
     protected static ?string $title = 'Laporan Stock';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     protected static array $filterFields = [
         ['key' => 'nama_barang', 'label' => 'Barang', 'type' => 'multiselect', 'source' => 'barang'],

@@ -43,14 +43,23 @@ class BarangsTable
                     ->money('IDR', divideBy: 1)
                     ->sortable(),
                 IconColumn::make('wajib_serial_number')
-                    ->label('Wajib Serial Number')
+                    ->label('SN')
                     ->boolean(),
                 TextColumn::make('keterangan')->limit(30)
-                    ->label('Keterangan')
+                    ->label('Ket')
                     ->limit(30)
                     ->toggleable(),
             ])
             ->filters([
+                SelectFilter::make('nama_product')
+                    ->label('Nama Barang')
+                    ->options(fn (): array => Barang::query()
+                        ->whereNotNull('nama_product')
+                        ->distinct()
+                        ->orderBy('nama_product')
+                        ->pluck('nama_product', 'nama_product')
+                        ->all())
+                    ->searchable(),
                 SelectFilter::make('kategori_id')
                     ->label('Kategori')
                     ->relationship('kategori', 'nama_kategori')
@@ -66,7 +75,7 @@ class BarangsTable
                         ->all())
                     ->searchable(),
             ])
-            ->filtersFormColumns(2)
+            ->filtersFormColumns(3)
             ->filtersLayout(FiltersLayout::AboveContent)
             ->recordActions([
                 EditAction::make(),

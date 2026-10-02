@@ -10,7 +10,7 @@ class PoReport extends ReportPage
 
     protected static ?string $title = 'Laporan Purchase Order';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     protected static array $filterFields = [
         ['key' => 'tanggalAwal', 'label' => 'Tanggal Awal', 'type' => 'date'],

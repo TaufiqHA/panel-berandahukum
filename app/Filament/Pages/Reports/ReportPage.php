@@ -114,6 +114,7 @@ abstract class ReportPage extends Page implements HasTable
         return match (static::$reportType) {
             'barang-masuk' => app(ReportController::class)->barangMasuk($filters),
             'penjualan' => app(ReportController::class)->penjualan($filters),
+            'barang-keluar' => app(ReportController::class)->barangKeluar($filters),
             'pindah-barang' => app(ReportController::class)->pindahBarang($filters),
             'stock' => app(ReportController::class)->stock($filters),
             'laba-rugi' => app(ReportController::class)->labaRugi($filters),
