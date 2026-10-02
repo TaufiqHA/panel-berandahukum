@@ -54,6 +54,6 @@ trait ChecksMenuPermission
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::checkMenuPermission();
+        return static::$shouldRegisterNavigation && static::checkMenuPermission();
     }
 }
