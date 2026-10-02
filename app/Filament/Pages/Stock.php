@@ -69,19 +69,15 @@ class Stock extends Page implements HasTable
                 TextColumn::make('toko.nama_toko')->limit(30)
                     ->label('Toko')
                     ->sortable(),
-                TextColumn::make('status')->limit(30)
+                TextColumn::make('stok')
                     ->label('Stok')
                     ->badge()
-                    ->formatStateUsing(fn ($state): string => match ((int) $state) {
-                        1 => 'Stock',
-                        3 => 'Barang Keluar',
-                        default => 'Lainnya',
-                    })
-                    ->color(fn ($state): string => match ((int) $state) {
-                        1 => 'success',
-                        3 => 'warning',
-                        default => 'gray',
-                    }),
+                    ->color('success')
+                    ->state(fn (GudangBarang $record): int => GudangBarang::query()
+                        ->where('barang_id', $record->barang_id)
+                        ->where('toko_id', $record->toko_id)
+                        ->where('status', 1)
+                        ->count()),
                 TextColumn::make('detail_barang_masuk.stock_in.id')->limit(30)
                     ->label('Id'),
                 TextColumn::make('detail_barang_masuk.stock_in.tanggal_masuk')->limit(30)
@@ -141,14 +137,42 @@ class Stock extends Page implements HasTable
                             fn (Builder $query): Builder => $query->whereKey($kategoriId),
                         );
                     }),
-                SelectFilter::make('status')
+                SelectFilter::make('stok')
                     ->label('Stok')
                     ->options([
-                        1 => 'Stock',
-                        3 => 'Barang Keluar',
-                    ]),
+                        'eq0' => '0',
+                        '1-5' => '1 - 5',
+                        '6-20' => '6 - 20',
+                        'gt20' => '> 20',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $condition = match ($data['value'] ?? null) {
+                            'eq0' => '= 0',
+                            '1-5' => 'between 1 and 5',
+                            '6-20' => 'between 6 and 20',
+                            'gt20' => '> 20',
+                            default => null,
+                        };
+
+                        if ($condition === null) {
+                            return $query;
+                        }
+
+                        return $query->whereRaw(static::stokSubquery().' '.$condition);
+                    }),
             ])
             ->filtersFormColumns(3)
             ->filtersLayout(FiltersLayout::AboveContent);
+    }
+
+    /**
+     * Correlated subquery counting available stock for the row's barang and toko.
+     */
+    private static function stokSubquery(): string
+    {
+        return '(select count(*) from gudang_barangs as gb_stok'
+            .' where gb_stok.barang_id = gudang_barangs.barang_id'
+            .' and (gb_stok.toko_id = gudang_barangs.toko_id or (gb_stok.toko_id is null and gudang_barangs.toko_id is null))'
+            .' and gb_stok.status = 1 and gb_stok.deleted_at is null)';
     }
 }

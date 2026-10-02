@@ -64,6 +64,53 @@ test('stock page lists unit stock with barang masuk id and tanggal masuk', funct
         ->assertTableColumnStateSet('detail_barang_masuk.stock_in.id', $stockIn->id, record: $unit);
 });
 
+test('stock page shows available stock count for the barang and toko', function () {
+    $toko = Toko::create(['nama_toko' => 'Toko A']);
+    $kategori = Kategori::create(['nama_kategori' => 'Kategori A']);
+    $barang = Barang::create([
+        'kategori_id' => $kategori->id,
+        'nama_product' => 'Speaker',
+        'merk' => 'Merk A',
+    ]);
+
+    $availableOne = GudangBarang::create([
+        'barang_id' => $barang->id,
+        'serial_number_id' => 'SN-1',
+        'toko_id' => $toko->id,
+        'status' => 1,
+    ]);
+    GudangBarang::create([
+        'barang_id' => $barang->id,
+        'serial_number_id' => 'SN-2',
+        'toko_id' => $toko->id,
+        'status' => 1,
+    ]);
+    GudangBarang::create([
+        'barang_id' => $barang->id,
+        'serial_number_id' => 'SN-3',
+        'toko_id' => $toko->id,
+        'status' => 3,
+    ]);
+
+    Livewire::test(Stock::class)
+        ->assertCanSeeTableRecords([$availableOne])
+        ->assertTableColumnStateSet('stok', 2, record: $availableOne);
+});
+
+test('stock page filters units by available stock quantity', function () {
+    [$unitWithStock] = createStockUnit('Speaker', 'Merk A', null, 1);
+    [$unitWithoutStock] = createStockUnit('Amplifier', 'Merk B', null, 3);
+
+    Livewire::test(Stock::class)
+        ->filterTable('stok', 'eq0')
+        ->assertCanSeeTableRecords([$unitWithoutStock])
+        ->assertCanNotSeeTableRecords([$unitWithStock])
+        ->resetTableFilters()
+        ->filterTable('stok', '1-5')
+        ->assertCanSeeTableRecords([$unitWithStock])
+        ->assertCanNotSeeTableRecords([$unitWithoutStock]);
+});
+
 test('stock page filters units by merk', function () {
     [$unitA] = createStockUnit('Speaker', 'Merk A');
     [$unitB] = createStockUnit('Amplifier', 'Merk B');
@@ -86,19 +133,15 @@ test('stock page filters units by kategori', function () {
         ->assertCanNotSeeTableRecords([$unitB]);
 });
 
-test('stock page filters units by toko and status', function () {
+test('stock page filters units by toko', function () {
     $tokoA = Toko::create(['nama_toko' => 'Toko A']);
     $tokoB = Toko::create(['nama_toko' => 'Toko B']);
 
-    [$unitA] = createStockUnit('Speaker', 'Merk A', $tokoA, 1);
-    [$unitB] = createStockUnit('Amplifier', 'Merk B', $tokoB, 3);
+    [$unitA] = createStockUnit('Speaker', 'Merk A', $tokoA);
+    [$unitB] = createStockUnit('Amplifier', 'Merk B', $tokoB);
 
     Livewire::test(Stock::class)
         ->filterTable('toko_id', $tokoA->id)
         ->assertCanSeeTableRecords([$unitA])
-        ->assertCanNotSeeTableRecords([$unitB])
-        ->resetTableFilters()
-        ->filterTable('status', 3)
-        ->assertCanSeeTableRecords([$unitB])
-        ->assertCanNotSeeTableRecords([$unitA]);
+        ->assertCanNotSeeTableRecords([$unitB]);
 });
