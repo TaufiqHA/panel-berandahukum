@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      force_full_sync:
+        description: "Force a full re-upload (ignore the FTP sync state)"
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -20,6 +26,19 @@ jobs:
           extensions: mbstring, bcmath, intl, pdo_mysql
           tools: composer
 
+      # A new sync-state name forces the FTP action to treat the server as
+      # "no state yet" and perform a complete upload, repairing any state
+      # file that went out of sync (which caused silently skipped uploads).
+      # Use the "force_full_sync" input to do a forced re-upload later.
+      - name: Resolve FTP sync state name
+        id: ftp_state
+        run: |
+          if [ "${{ inputs.force_full_sync }}" = "true" ]; then
+            echo "state_name=.ftp-deploy-sync-state-${{ github.run_id }}.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "state_name=.ftp-deploy-sync-state-v2.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -30,11 +49,12 @@ jobs:
           port: 21
           local-dir: ./
           server-dir: /
-          state-name: .ftp-deploy-sync-state.json
+          state-name: ${{ steps.ftp_state.outputs.state_name }}
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
             **/vendor/**
+            **/.ftp-deploy-sync-state*.json
             .env
             .env.*

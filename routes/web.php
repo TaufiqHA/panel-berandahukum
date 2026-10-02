@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BarangController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\PrintController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -26,4 +27,6 @@ Route::middleware('auth')->group(function () {
     Route::get('report/export/{type}', [ReportController::class, 'export'])->name('report.export');
 
     Route::get('barang/export/pdf', [BarangController::class, 'exportPdf'])->name('barang.export.pdf');
+
+    Route::get('maintenance/clear-cache', [MaintenanceController::class, 'clearCache'])->name('maintenance.clear-cache');
 });
