@@ -33,15 +33,9 @@ class PosTable
                     ->label('Kode PO')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('nama_purchase')->limit(30)
-                    ->label('Nama Purchasing')
-                    ->searchable(),
                 TextColumn::make('nama_supplier')->limit(30)
                     ->label('Nama Supplier')
                     ->searchable(),
-                TextColumn::make('alamat_supplier')->limit(30)
-                    ->label('Alamat')
-                    ->limit(30),
                 TextColumn::make('jatuh_tempo')->limit(30)
                     ->label('Jatuh Tempo')
                     ->date('d M Y')
@@ -63,11 +57,8 @@ class PosTable
                         3 => 'danger',
                         default => 'info',
                     }),
-                TextColumn::make('toko.nama_toko')->limit(30)
-                    ->label('Toko')
-                    ->sortable(),
                 TextColumn::make('jenis_barang')->limit(30)
-                    ->label('Jenis Barang')
+                    ->label('Keterangan')
                     ->placeholder('-'),
                 TextColumn::make('status_terima')->limit(30)
                     ->label('Status Barang')

@@ -29,11 +29,11 @@ class PindahTokoInResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Pindah Toko';
 
-    protected static ?string $navigationLabel = 'Barang Masuk';
+    protected static ?string $navigationLabel = 'Barang Masuk Pindah';
 
-    protected static ?string $modelLabel = 'Barang Masuk';
+    protected static ?string $modelLabel = 'Barang Masuk Pindah';
 
-    protected static ?string $pluralModelLabel = 'Barang Masuk';
+    protected static ?string $pluralModelLabel = 'Barang Masuk Pindah';
 
     protected static ?int $navigationSort = 1;
 

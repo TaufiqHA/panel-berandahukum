@@ -171,16 +171,14 @@ class ReportController extends Controller
                     $barangKeluar->toko?->nama_toko,
                     $barangKeluar->date ? date('d F Y', strtotime($barangKeluar->date)) : '',
                     $barangKeluar->nama_penerima,
-                    $barangKeluar->alamat_penerima,
-                    $barangKeluar->telepon_penerima,
                     $harga,
-                    $barangKeluar->nama_sales,
+                    $barangKeluar->keterangan,
                 ];
             }
         }
 
         return [
-            'headings' => ['No', 'No Ref', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Penerima', 'Alamat Penerima', 'No Telepon', 'Harga', 'Sales'],
+            'headings' => ['No', 'No Ref', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Penerima', 'Harga', 'Keterangan'],
             'rows' => $rows,
         ];
     }
@@ -414,7 +412,9 @@ class ReportController extends Controller
         [$from, $to] = $this->range($filters);
         $user = Auth::user();
 
-        $query = Po::with(['toko', 'supplier'])->whereBetween('date', [$from, $to]);
+        $query = Po::with(['toko', 'supplier'])
+            ->where('status', 1)
+            ->whereBetween('date', [$from, $to]);
 
         if (! empty($filters['jatuh_tempo_awal']) && ! empty($filters['jatuh_tempo_akhir'])) {
             $query->whereBetween('jatuh_tempo', [
@@ -447,10 +447,6 @@ class ReportController extends Controller
             }
         }
 
-        if (isset($filters['status_po']) && $filters['status_po'] !== '' && $filters['status_po'] !== 'semua') {
-            $query->where('status', (int) $filters['status_po']);
-        }
-
         $rows = [];
         $total = 0;
 
@@ -467,24 +463,19 @@ class ReportController extends Controller
                 $po->id,
                 $po->date ? date('d-F-Y', strtotime($po->date)) : '',
                 $po->kode_po,
-                $po->nama_purchase,
                 $po->supplier?->nama_supplier ?? $po->nama_supplier,
-                $po->supplier?->alamat ?? $po->alamat_supplier,
-                $po->telepon,
                 number_format((float) $po->subtotal),
                 (int) $po->status === 2 ? 'Draft' : 'Dikirim',
-                $po->toko?->nama_toko,
                 (int) $po->status_terima === 1 ? 'Sudah DiTerima' : 'Belum DiTerima',
                 $statusBayar,
                 $po->jatuh_tempo ? date('d-F-Y', strtotime($po->jatuh_tempo)) : '',
-                $po->keterangan,
             ];
         }
 
-        $rows[] = ['', '', '', '', '', '', '', '', '', '', '', '', 'TOTAL', number_format($total)];
+        $rows[] = ['', '', '', 'TOTAL', number_format($total)];
 
         return [
-            'headings' => ['Id', 'Tanggal', 'Kode PO', 'Nama Purchasing', 'Nama Supplier', 'Alamat', 'Telepon', 'Total Pembayaran', 'Status PO', 'Toko', 'Status Barang', 'Status Bayar', 'Jatuh Tempo', 'Keterangan'],
+            'headings' => ['Id', 'Tanggal', 'Kode PO', 'Nama Supplier', 'Total Pembayaran', 'Status PO', 'Status Barang', 'Status Bayar', 'Jatuh Tempo'],
             'rows' => $rows,
         ];
     }

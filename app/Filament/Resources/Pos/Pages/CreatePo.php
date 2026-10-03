@@ -6,6 +6,7 @@ use App\Filament\Resources\Pos\PoResource;
 use App\Filament\Support\LineItems;
 use App\Models\PoDetail;
 use App\Models\Supplier;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePo extends CreateRecord
@@ -17,10 +18,34 @@ class CreatePo extends CreateRecord
      */
     protected array $items = [];
 
+    protected bool $savingAsDraft = false;
+
+    protected function getFormActions(): array
+    {
+        return [
+            ...parent::getFormActions(),
+            Action::make('saveDraft')
+                ->label('Draft')
+                ->color('danger')
+                ->action('saveDraft'),
+        ];
+    }
+
+    public function saveDraft(): void
+    {
+        $this->savingAsDraft = true;
+
+        try {
+            $this->create();
+        } finally {
+            $this->savingAsDraft = false;
+        }
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->items = $data['items'] ?? [];
-        $data = self::normalizeHeader($data, $this->items);
+        $data = self::normalizeHeader($data, $this->items, $this->savingAsDraft ? 2 : 1);
 
         return $data;
     }
@@ -30,7 +55,7 @@ class CreatePo extends CreateRecord
      * @param  array<int, array<string, mixed>>  $items
      * @return array<string, mixed>
      */
-    public static function normalizeHeader(array $data, array $items): array
+    public static function normalizeHeader(array $data, array $items, int $status = 1): array
     {
         $usePpn = (bool) ($data['use_ppn'] ?? false);
         $isDp = (bool) ($data['status_dp'] ?? false);
@@ -39,7 +64,7 @@ class CreatePo extends CreateRecord
 
         $subtotal = LineItems::sum($items);
 
-        $data['status'] = 1;
+        $data['status'] = $status;
         $data['status_bayar'] = (bool) ($data['status_bayar'] ?? false) ? 1 : 0;
         $data['status_terima'] = (bool) ($data['status_terima'] ?? false) ? 1 : 0;
         $data['subtotal'] = $subtotal;

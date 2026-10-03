@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Pos\Pages;
 
 use App\Filament\Resources\Pos\PoResource;
 use App\Models\PoDetail;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -16,12 +17,37 @@ class EditPo extends EditRecord
      */
     protected ?array $items = null;
 
+    protected bool $savingAsDraft = false;
+
     protected function getHeaderActions(): array
     {
         return [
             DeleteAction::make()
                 ->after(fn () => PoDetail::where('po_id', $this->record->id)->delete()),
         ];
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getSaveFormAction(),
+            $this->getCancelFormAction(),
+            Action::make('saveDraft')
+                ->label('Draft')
+                ->color('danger')
+                ->action('saveDraft'),
+        ];
+    }
+
+    public function saveDraft(): void
+    {
+        $this->savingAsDraft = true;
+
+        try {
+            $this->save();
+        } finally {
+            $this->savingAsDraft = false;
+        }
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
@@ -50,7 +76,7 @@ class EditPo extends EditRecord
             $this->items = $data['items'] ?? [];
         }
 
-        return CreatePo::normalizeHeader($data, $this->items ?? []);
+        return CreatePo::normalizeHeader($data, $this->items ?? [], $this->savingAsDraft ? 2 : 1);
     }
 
     protected function afterSave(): void

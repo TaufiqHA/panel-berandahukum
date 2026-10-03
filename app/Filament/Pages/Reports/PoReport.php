@@ -19,7 +19,6 @@ class PoReport extends ReportPage
         ['key' => 'jatuh_tempo_akhir', 'label' => 'Jatuh Tempo Akhir', 'type' => 'date'],
         ['key' => 'nama_toko', 'label' => 'Toko', 'type' => 'multiselect', 'source' => 'toko'],
         ['key' => 'nama_supplier', 'label' => 'Supplier', 'type' => 'multiselect', 'source' => 'supplier'],
-        ['key' => 'status_po', 'label' => 'Status PO', 'type' => 'select', 'choices' => ['semua' => '-Pilih Semua-', '1' => 'Dikirim', '2' => 'Draft', '3' => 'Canceled']],
         ['key' => 'status_terima', 'label' => 'Status Barang', 'type' => 'select', 'choices' => ['2' => '-Pilih Semua-', '1' => 'Diterima', '0' => 'Belum Diterima']],
         ['key' => 'status_bayar', 'label' => 'Status Bayar', 'type' => 'select', 'choices' => ['3' => '-Pilih Semua-', '1' => 'Lunas', '0' => 'Hutang', '2' => 'DP']],
     ];

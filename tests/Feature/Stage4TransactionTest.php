@@ -4,6 +4,7 @@ use App\Filament\Resources\BarangKeluars\Pages\CreateBarangKeluar;
 use App\Filament\Resources\Penjualans\Pages\CreatePenjualan;
 use App\Filament\Resources\Penjualans\Pages\EditPenjualan;
 use App\Filament\Resources\Pos\Pages\CreatePo;
+use App\Filament\Resources\Pos\Pages\EditPo;
 use App\Models\Barang;
 use App\Models\BarangKeluar;
 use App\Models\DataBarangKeluar;
@@ -138,6 +139,52 @@ test('penjualan edit fills the PPN toggle from the stored value', function () {
 
     Livewire::test(EditPenjualan::class, ['record' => $penjualan->getRouteKey()])
         ->assertFormSet(['use_ppn' => true]);
+});
+
+test('create purchase order can be saved as draft', function () {
+    Livewire::test(CreatePo::class)
+        ->fillForm([
+            'date' => now()->toDateString(),
+            'kode_po' => 'PO-DRAFT-NEW',
+            'toko_id' => $this->toko->id,
+            'items' => [
+                ['barang_id' => $this->barang->id, 'jumlah' => 1, 'price' => 1000000, 'discount' => 0],
+            ],
+        ])
+        ->call('saveDraft')
+        ->assertHasNoFormErrors();
+
+    expect((int) Po::where('kode_po', 'PO-DRAFT-NEW')->first()->status)->toBe(2);
+});
+
+test('edit purchase order can be saved as draft and back to dikirim', function () {
+    $po = Po::create([
+        'date' => now()->toDateString(),
+        'kode_po' => 'PO-DRAFT-EDIT',
+        'toko_id' => $this->toko->id,
+        'status' => 1,
+    ]);
+
+    PoDetail::create([
+        'po_id' => $po->id,
+        'barang_id' => $this->barang->id,
+        'jumlah' => 1,
+        'price' => 1000000,
+        'discount' => 0,
+        'subtotal' => 1000000,
+    ]);
+
+    Livewire::test(EditPo::class, ['record' => $po->getRouteKey()])
+        ->call('saveDraft')
+        ->assertHasNoFormErrors();
+
+    expect((int) $po->refresh()->status)->toBe(2);
+
+    Livewire::test(EditPo::class, ['record' => $po->getRouteKey()])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect((int) $po->refresh()->status)->toBe(1);
 });
 
 test('transaction edit pages render with their line items', function () {

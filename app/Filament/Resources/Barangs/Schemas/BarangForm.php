@@ -46,7 +46,7 @@ class BarangForm
                     ->default(null)
                     ->maxLength(100),
                 TextInput::make('harga')
-                    ->label('Harga')
+                    ->label('Price List')
                     ->numeric()
                     ->prefix('Rp')
                     ->default(0),
