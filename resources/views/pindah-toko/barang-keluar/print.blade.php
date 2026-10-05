@@ -1184,7 +1184,6 @@
 					<td class="table-detail" style="text-align: center;padding-left:0px;">{{ $key+1 }}</td>
 					<td class="table-detail">{{ $pindah['nama_product'] }}</td>
 					<td class="table-detail">{{ $pindah['pivot']['count']. ' '. $pindah['satuan'] }}</td>
-					@php
 					<td class="table-detail">{{ $pindah['pivot']['serial_number'] }}</td>
 				</tr>
 				@endforeach
