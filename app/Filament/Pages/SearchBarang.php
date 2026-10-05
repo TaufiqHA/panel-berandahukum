@@ -77,17 +77,17 @@ class SearchBarang extends Page implements HasTable
                     ->placeholder('-'),
                 TextColumn::make('detail_barang_masuk.stock_in.harga_beli')->limit(30)
                     ->label('Harga Beli')
-                    ->money('IDR', divideBy: 1)
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0)
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('detail_barang_masuk.stock_in.harga_jual')->limit(30)
                     ->label('Harga Jual')
-                    ->money('IDR', divideBy: 1)
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0)
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('detail_barang_masuk.stock_in.price_list')->limit(30)
                     ->label('Price List')
-                    ->money('IDR', divideBy: 1)
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0)
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

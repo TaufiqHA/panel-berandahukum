@@ -41,13 +41,13 @@ class StockInsTable
                     ->sortable(),
                 TextColumn::make('harga_beli')->limit(30)
                     ->label('Harga Beli')
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('harga_jual')->limit(30)
                     ->label('Harga Jual')
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('price_list')->limit(30)
                     ->label('Price List')
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('made_in')->limit(30)
                     ->label('Made In'),
                 TextColumn::make('supplier')->limit(30)

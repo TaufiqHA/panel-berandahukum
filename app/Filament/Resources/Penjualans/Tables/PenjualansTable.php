@@ -50,13 +50,13 @@ class PenjualansTable
                 TextColumn::make('total_pembayaran')->limit(30)
                     ->label('Total Pembayaran')
                     ->state(fn ($record): float => (float) $record->subtotal + ((float) $record->ppn > 0 ? round((float) $record->subtotal * 0.11) : 0))
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('dp_payment')->limit(30)
                     ->label('DP')
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('sisa')->limit(30)
                     ->label('Sisa')
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('status')->limit(30)
                     ->label('Status')
                     ->badge()

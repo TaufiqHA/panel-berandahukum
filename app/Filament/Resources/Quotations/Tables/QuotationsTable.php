@@ -44,7 +44,7 @@ class QuotationsTable
                     ->placeholder('-'),
                 TextColumn::make('subtotal')->limit(30)
                     ->label('Total Pembayaran')
-                    ->money('IDR', divideBy: 1)
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0)
                     ->sortable(),
                 TextColumn::make('status')->limit(30)
                     ->label('Status')

@@ -40,7 +40,7 @@ class LatestPenjualans extends TableWidget
                     ->label('Toko'),
                 TextColumn::make('subtotal')->limit(30)
                     ->label('Subtotal')
-                    ->money('IDR', divideBy: 1),
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0),
                 TextColumn::make('status')->limit(30)
                     ->label('Status')
                     ->badge()

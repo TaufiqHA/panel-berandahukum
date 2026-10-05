@@ -40,7 +40,7 @@ class BarangsTable
                     ->label('Ukuran'),
                 TextColumn::make('harga')->limit(30)
                     ->label('Price List')
-                    ->money('IDR', divideBy: 1)
+                    ->money('IDR', divideBy: 1, decimalPlaces: 0)
                     ->sortable(),
                 IconColumn::make('wajib_serial_number')
                     ->label('SN')
