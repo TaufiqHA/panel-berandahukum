@@ -13,7 +13,7 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-test('laporan laba rugi berdasarkan penjualan memakai label Cara Bayar dan Status Bayar', function () {
+test('laporan laba rugi berdasarkan penjualan memakai kolom yang diinginkan', function () {
     $report = app(ReportController::class)->labaRugi(['jenis_report' => '2']);
 
     expect($report['headings'])->toBe([
@@ -21,15 +21,11 @@ test('laporan laba rugi berdasarkan penjualan memakai label Cara Bayar dan Statu
         'Tanggal',
         'Kode Penjualan',
         'Nama Pembeli',
-        'Cara Bayar',
         'Nama Toko',
         'Status Bayar',
         'Total Pembayaran',
-        'DP',
-        'Sisa',
         'Total Hrg.Beli',
         'Keuntungan',
-        'Status',
         'Nama Project',
     ]);
 });

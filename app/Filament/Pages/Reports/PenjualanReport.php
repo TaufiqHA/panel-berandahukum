@@ -18,5 +18,6 @@ class PenjualanReport extends ReportPage
         ['key' => 'tanggalAwal', 'label' => 'Tanggal Awal', 'type' => 'date'],
         ['key' => 'tanggalAkhir', 'label' => 'Tanggal Akhir', 'type' => 'date'],
         ['key' => 'nama_toko', 'label' => 'Toko', 'type' => 'multiselect', 'source' => 'toko'],
+        ['key' => 'status_bayar', 'label' => 'Status Bayar', 'type' => 'select', 'choices' => ['Lunas' => 'Lunas', 'DP' => 'DP']],
     ];
 }

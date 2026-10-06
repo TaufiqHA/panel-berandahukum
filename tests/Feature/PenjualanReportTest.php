@@ -82,7 +82,6 @@ test('laporan penjualan berdasarkan penjualan memakai kolom per transaksi', func
         'Total Pembayaran',
         'DP',
         'Sisa',
-        'Status',
         'Nama Project',
     ]);
 
@@ -112,4 +111,47 @@ test('laporan penjualan memperbarui kolom saat jenis laporan diganti', function 
         ->toContain('No Ref')
         ->toContain('Nama Barang')
         ->not->toContain('Kode Penjualan');
+});
+
+test('laporan penjualan dapat difilter berdasarkan status bayar', function () {
+    $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
+    $kategori = Kategori::create(['nama_kategori' => 'Audio']);
+    $barang = Barang::create([
+        'kategori_id' => $kategori->id,
+        'nama_product' => 'Speaker',
+    ]);
+
+    $makePenjualan = function (string $kode, string $status) use ($toko, $barang): void {
+        $penjualan = Penjualan::create([
+            'date' => now()->toDateString(),
+            'kode_penjualan' => $kode,
+            'nama_pembeli' => 'Pembeli',
+            'toko_id' => $toko->id,
+            'subtotal' => 1000000,
+            'status' => 1,
+            'ppn' => 0,
+            'show_infopembayaran' => 0,
+            'payment_status' => $status,
+        ]);
+
+        DetailPenjualan::create([
+            'penjualan_id' => $penjualan->id,
+            'barang_id' => $barang->id,
+            'price' => 1000000,
+            'discount' => 0,
+        ]);
+    };
+
+    $makePenjualan('PJ-LUNAS', 'Lunas');
+    $makePenjualan('PJ-DP', 'DP');
+
+    $controller = app(ReportController::class);
+
+    $kodeUntuk = fn (string $status): array => array_column(
+        array_slice($controller->penjualan(['jenis_report' => '2', 'status_bayar' => $status])['rows'], 0, -1),
+        2,
+    );
+
+    expect($kodeUntuk('Lunas'))->toBe(['PJ-LUNAS'])
+        ->and($kodeUntuk('DP'))->toBe(['PJ-DP']);
 });

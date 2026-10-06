@@ -99,6 +99,10 @@ class ReportController extends Controller
             });
         }
 
+        if (! empty($filters['status_bayar'])) {
+            $query->where('payment_status', $filters['status_bayar']);
+        }
+
         if ((string) ($filters['jenis_report'] ?? '1') === '2') {
             return $this->penjualanBerdasarkanPenjualan($query);
         }
@@ -163,15 +167,14 @@ class ReportController extends Controller
                 $this->rupiah($total),
                 $this->rupiah($penjualan->dp_payment),
                 $this->rupiah($penjualan->sisa),
-                (int) $penjualan->status === 2 ? 'Draft' : 'Done',
                 $penjualan->nama_project ?? '',
             ];
         }
 
-        $rows[] = ['', 'TOTAL', '', '', '', '', '', $this->rupiah($totalPembayaran), '', '', '', ''];
+        $rows[] = ['', 'TOTAL', '', '', '', '', '', $this->rupiah($totalPembayaran), '', '', ''];
 
         return [
-            'headings' => ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Cara Bayar', 'Nama Toko', 'Status Bayar', 'Total Pembayaran', 'DP', 'Sisa', 'Status', 'Nama Project'],
+            'headings' => ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Cara Bayar', 'Nama Toko', 'Status Bayar', 'Total Pembayaran', 'DP', 'Sisa', 'Nama Project'],
             'rows' => $rows,
         ];
     }
@@ -379,8 +382,8 @@ class ReportController extends Controller
         $no = 1;
 
         if ($jenis === '2') {
-            $headings = ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Cara Bayar', 'Nama Toko', 'Status Bayar', 'Total Pembayaran', 'DP', 'Sisa', 'Total Hrg.Beli', 'Keuntungan', 'Status', 'Nama Project'];
-            $totalHrgBeli = $totalPembayaran = $totalDp = $totalSisa = $totalUntung = 0;
+            $headings = ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Nama Toko', 'Status Bayar', 'Total Pembayaran', 'Total Hrg.Beli', 'Keuntungan', 'Nama Project'];
+            $totalHrgBeli = $totalPembayaran = $totalUntung = 0;
 
             foreach ($query->orderBy('date', 'desc')->get() as $penjualan) {
                 $hargaBeli = 0;
@@ -396,8 +399,6 @@ class ReportController extends Controller
                 $untung = $total - $hargaBeli;
                 $totalPembayaran += $total;
                 $totalHrgBeli += $hargaBeli;
-                $totalDp += (float) $penjualan->dp_payment;
-                $totalSisa += (float) $penjualan->sisa;
                 $totalUntung += $untung;
 
                 $rows[] = [
@@ -405,20 +406,16 @@ class ReportController extends Controller
                     $penjualan->date ? date('d F Y', strtotime($penjualan->date)) : '',
                     $penjualan->kode_penjualan,
                     $penjualan->nama_pembeli,
-                    $penjualan->metode_pembayaran,
                     $penjualan->toko?->nama_toko,
                     $penjualan->payment_status,
                     $this->rupiah($total),
-                    $this->rupiah($penjualan->dp_payment),
-                    $this->rupiah($penjualan->sisa),
                     $this->rupiah($hargaBeli),
                     $this->rupiah($untung),
-                    (int) $penjualan->status === 2 ? 'Draft' : 'Done',
                     $penjualan->nama_project ?? '',
                 ];
             }
 
-            $rows[] = ['', 'TOTAL', '', '', '', '', '', $this->rupiah($totalPembayaran), $this->rupiah($totalDp), $this->rupiah($totalSisa), $this->rupiah($totalHrgBeli), $this->rupiah($totalUntung), '', ''];
+            $rows[] = ['', 'TOTAL', '', '', '', '', $this->rupiah($totalPembayaran), $this->rupiah($totalHrgBeli), $this->rupiah($totalUntung), ''];
 
             return ['headings' => $headings, 'rows' => $rows];
         }
