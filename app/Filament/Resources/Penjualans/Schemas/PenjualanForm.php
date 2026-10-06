@@ -126,15 +126,14 @@ class PenjualanForm
                                 ->content(fn ($get): HtmlString => new HtmlString(LineItems::rupiah(LineItems::sum($get('items')) + round(LineItems::sum($get('items')) * 0.11)))),
                             TextInput::make('dp_payment')
                                 ->label('DP')
-                                ->numeric()
-                                ->prefix('Rp')
+                                ->money()
                                 ->default(0)
                                 ->live()
                                 ->visible(fn ($get): bool => $get('payment_status') === 'DP'),
                             Placeholder::make('sisa_display')
                                 ->label('Sisa')
                                 ->visible(fn ($get): bool => $get('payment_status') === 'DP')
-                                ->content(fn ($get): HtmlString => new HtmlString(LineItems::rupiah(max(0, LineItems::sum($get('items')) + ((bool) $get('use_ppn') ? round(LineItems::sum($get('items')) * 0.11) : 0) - (float) $get('dp_payment'))))),
+                                ->content(fn ($get): HtmlString => new HtmlString(LineItems::rupiah(max(0, LineItems::sum($get('items')) + ((bool) $get('use_ppn') ? round(LineItems::sum($get('items')) * 0.11) : 0) - LineItems::toNumber($get('dp_payment')))))),
                         ])->columnSpan(6),
                     ]),
                 ])->columns(1),

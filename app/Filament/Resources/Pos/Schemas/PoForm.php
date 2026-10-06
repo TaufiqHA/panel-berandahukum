@@ -100,15 +100,14 @@ class PoForm
                                 ->content(fn ($get): HtmlString => new HtmlString(LineItems::rupiah(LineItems::sum($get('items')) + ((bool) $get('use_ppn') ? round(LineItems::sum($get('items')) * 0.11) : 0)))),
                             TextInput::make('po_dp')
                                 ->label('Uang Muka')
-                                ->numeric()
-                                ->prefix('Rp')
+                                ->money()
                                 ->default(0)
                                 ->live()
                                 ->visible(fn ($get): bool => (bool) $get('status_dp')),
                             Placeholder::make('sisa_display')
                                 ->label('Sisa Pembayaran')
                                 ->visible(fn ($get): bool => (bool) $get('status_dp'))
-                                ->content(fn ($get): HtmlString => new HtmlString(LineItems::rupiah(max(0, LineItems::sum($get('items')) + ((bool) $get('use_ppn') ? round(LineItems::sum($get('items')) * 0.11) : 0) - (float) $get('po_dp'))))),
+                                ->content(fn ($get): HtmlString => new HtmlString(LineItems::rupiah(max(0, LineItems::sum($get('items')) + ((bool) $get('use_ppn') ? round(LineItems::sum($get('items')) * 0.11) : 0) - LineItems::toNumber($get('po_dp')))))),
                         ])->columnSpan(6),
                     ]),
                     Grid::make(12)->schema([

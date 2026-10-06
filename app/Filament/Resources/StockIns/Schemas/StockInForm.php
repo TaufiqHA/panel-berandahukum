@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StockIns\Schemas;
 
+use App\Models\Barang;
 use App\Models\Supplier;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -10,6 +11,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class StockInForm
@@ -27,6 +29,8 @@ class StockInForm
                             ->getOptionLabelFromRecordUsing(fn ($record): string => $record->nama_product.($record->warna ? ' - '.$record->warna : ''))
                             ->wrapOptionLabels(false)->searchable(['nama_product', 'merk'])
                             ->preload()
+                            ->live()
+                            ->afterStateUpdated(fn ($state, Set $set) => $set('price_list', number_format((float) (Barang::find($state)?->harga ?? 0), 0, ',', '.')))
                             ->columnSpanFull()
                             ->required(),
                         TextInput::make('jumlah')
@@ -51,15 +55,17 @@ class StockInForm
                             ->columnSpan(4),
                         TextInput::make('harga_beli')
                             ->label('Harga Beli')
-                            ->numeric()
-                            ->prefix('Rp')
+                            ->money()
                             ->default(0)
                             ->columnSpan(4),
                         TextInput::make('price_list')
                             ->label('Price List')
-                            ->numeric()
                             ->prefix('Rp')
                             ->default(0)
+                            ->disabled()
+                            ->dehydrated()
+                            ->formatStateUsing(fn ($state, $get): ?string => number_format((float) preg_replace('/[^0-9-]/', '', (string) (Barang::find($get('barang_id'))?->harga ?? $state ?? 0)), 0, ',', '.'))
+                            ->dehydrateStateUsing(fn ($state): float => (float) preg_replace('/[^0-9-]/', '', (string) $state))
                             ->columnSpan(4),
                         TextInput::make('made_in')
                             ->label('Made In')

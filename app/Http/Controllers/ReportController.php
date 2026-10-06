@@ -10,6 +10,7 @@ use App\Models\Penjualan;
 use App\Models\Po;
 use App\Models\StockIn;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
@@ -54,9 +55,9 @@ class ReportController extends Controller
                 $stock->barang->nama_product,
                 $stock->jumlah,
                 $stock->tanggal_masuk ? date('d F Y', strtotime($stock->tanggal_masuk)) : '',
-                number_format((float) $stock->harga_beli),
-                number_format((float) $stock->harga_jual),
-                number_format((float) $stock->price_list),
+                $this->rupiah((float) $stock->harga_beli),
+                $this->rupiah((float) $stock->harga_jual),
+                $this->rupiah((float) $stock->price_list),
                 $stock->made_in,
                 $stock->supplier,
                 $stock->toko?->nama_toko,
@@ -98,6 +99,10 @@ class ReportController extends Controller
             });
         }
 
+        if ((string) ($filters['jenis_report'] ?? '1') === '2') {
+            return $this->penjualanBerdasarkanPenjualan($query);
+        }
+
         $rows = [];
         $no = 1;
 
@@ -117,7 +122,7 @@ class ReportController extends Controller
                     $penjualan->nama_pembeli,
                     $penjualan->alamat_pembeli,
                     $penjualan->telepon,
-                    (float) $detail->price - ((float) $detail->price * (float) $detail->discount / 100),
+                    $this->rupiah((float) $detail->price - ((float) $detail->price * (float) $detail->discount / 100)),
                     $penjualan->nama_sales,
                 ];
             }
@@ -125,6 +130,48 @@ class ReportController extends Controller
 
         return [
             'headings' => ['No', 'No Ref', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Pembeli', 'Alamat Pembeli', 'No Telepon', 'Harga Terjual', 'Sales'],
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * @param  Builder<Penjualan>  $query
+     * @return array{headings: array<int, string>, rows: array<int, array<int, mixed>>}
+     */
+    private function penjualanBerdasarkanPenjualan(Builder $query): array
+    {
+        $rows = [];
+        $no = 1;
+        $totalPembayaran = 0;
+
+        foreach ($query->orderBy('date', 'desc')->get() as $penjualan) {
+            $total = (float) $penjualan->subtotal;
+            if ((float) $penjualan->ppn != 0) {
+                $total += $total * 11 / 100;
+            }
+
+            $totalPembayaran += $total;
+
+            $rows[] = [
+                $no++,
+                $penjualan->date ? date('d F Y', strtotime($penjualan->date)) : '',
+                $penjualan->kode_penjualan,
+                $penjualan->nama_pembeli,
+                $penjualan->metode_pembayaran,
+                $penjualan->toko?->nama_toko,
+                $penjualan->payment_status,
+                $this->rupiah($total),
+                $this->rupiah($penjualan->dp_payment),
+                $this->rupiah($penjualan->sisa),
+                (int) $penjualan->status === 2 ? 'Draft' : 'Done',
+                $penjualan->nama_project ?? '',
+            ];
+        }
+
+        $rows[] = ['', 'TOTAL', '', '', '', '', '', $this->rupiah($totalPembayaran), '', '', '', ''];
+
+        return [
+            'headings' => ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Cara Bayar', 'Nama Toko', 'Status Bayar', 'Total Pembayaran', 'DP', 'Sisa', 'Status', 'Nama Project'],
             'rows' => $rows,
         ];
     }
@@ -172,7 +219,7 @@ class ReportController extends Controller
                     $barangKeluar->toko?->nama_toko,
                     $barangKeluar->date ? date('d F Y', strtotime($barangKeluar->date)) : '',
                     $barangKeluar->nama_penerima,
-                    $harga,
+                    $this->rupiah($harga),
                     $barangKeluar->keterangan,
                 ];
             }
@@ -232,7 +279,9 @@ class ReportController extends Controller
                 $value->gudang_barang?->serial_number?->serial_number ?? '',
                 $value->keterangan,
                 (int) $value->status === 1 ? 'Dikirim' : 'Diterima',
-                $value->gudang_barang?->detail_barang_masuk?->stock_in?->harga_beli ?? '',
+                $value->gudang_barang?->detail_barang_masuk?->stock_in?->harga_beli !== null
+                    ? $this->rupiah($value->gudang_barang->detail_barang_masuk->stock_in->harga_beli)
+                    : '',
             ];
         }
 
@@ -250,7 +299,7 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        $query = GudangBarang::with(['barang', 'serial_number', 'detail_barang_masuk.stock_in', 'toko']);
+        $query = GudangBarang::with(['barang', 'detail_barang_masuk.stock_in', 'toko']);
 
         if ($user && (int) $user->status === 2) {
             $query->where('toko_id', $user->toko_id);
@@ -271,21 +320,19 @@ class ReportController extends Controller
             $rows[] = [
                 $no++,
                 $unit->detail_barang_masuk?->stock_in?->tanggal_masuk ? date('d F Y', strtotime($unit->detail_barang_masuk->stock_in->tanggal_masuk)) : '',
-                $stockIn?->po?->kode_po ?? '',
-                $stockIn?->po?->date ? date('d F Y', strtotime($stockIn->po->date)) : '',
                 $unit->barang?->nama_product,
-                $unit->serial_number?->serial_number ?? '',
+                $unit->serial_number_id ?? '',
                 1,
                 $unit->barang?->warna,
                 $unit->toko?->nama_toko,
-                $stockIn?->harga_beli ?? '',
-                $stockIn?->harga_jual ?? '',
+                $stockIn?->harga_beli !== null ? $this->rupiah($stockIn->harga_beli) : '',
+                $stockIn?->price_list !== null ? $this->rupiah($stockIn->price_list) : '',
                 $stockIn?->supplier ?? '',
             ];
         }
 
         return [
-            'headings' => ['No', 'Tanggal Masuk', 'No PO', 'Tanggal PO', 'Nama Barang', 'Serial Number', 'Jumlah', 'Warna', 'Nama Toko', 'Harga Beli', 'Harga Jual', 'Supplier'],
+            'headings' => ['No', 'Tanggal Masuk', 'Nama Barang', 'Serial Number', 'Jumlah', 'Warna', 'Nama Toko', 'Harga Beli', 'Price List', 'Supplier'],
             'rows' => $rows,
         ];
     }
@@ -320,6 +367,14 @@ class ReportController extends Controller
             });
         }
 
+        // Hanya penjualan yang sudah lunas (tidak ada sisa pembayaran) dan bukan
+        // DP yang dihitung sebagai laba/rugi.
+        $query
+            ->where('payment_status', '!=', 'DP')
+            ->where(function (Builder $query): void {
+                $query->whereNull('sisa')->orWhere('sisa', '<=', 0);
+            });
+
         $rows = [];
         $no = 1;
 
@@ -353,17 +408,17 @@ class ReportController extends Controller
                     $penjualan->metode_pembayaran,
                     $penjualan->toko?->nama_toko,
                     $penjualan->payment_status,
-                    $total,
-                    (float) $penjualan->dp_payment,
-                    (float) $penjualan->sisa,
-                    $hargaBeli,
-                    $untung,
+                    $this->rupiah($total),
+                    $this->rupiah($penjualan->dp_payment),
+                    $this->rupiah($penjualan->sisa),
+                    $this->rupiah($hargaBeli),
+                    $this->rupiah($untung),
                     (int) $penjualan->status === 2 ? 'Draft' : 'Done',
                     $penjualan->nama_project ?? '',
                 ];
             }
 
-            $rows[] = ['', 'TOTAL', '', '', '', '', '', $totalPembayaran, $totalDp, $totalSisa, $totalHrgBeli, $totalUntung, '', ''];
+            $rows[] = ['', 'TOTAL', '', '', '', '', '', $this->rupiah($totalPembayaran), $this->rupiah($totalDp), $this->rupiah($totalSisa), $this->rupiah($totalHrgBeli), $this->rupiah($totalUntung), '', ''];
 
             return ['headings' => $headings, 'rows' => $rows];
         }
@@ -392,14 +447,14 @@ class ReportController extends Controller
                     $detail->barang?->nama_product,
                     $serial,
                     $penjualan->toko?->nama_toko,
-                    $hargaBeli,
-                    $hargaJual,
-                    $untung,
+                    $this->rupiah($hargaBeli),
+                    $this->rupiah($hargaJual),
+                    $this->rupiah($untung),
                 ];
             }
         }
 
-        $rows[] = ['', 'TOTAL', '', '', '', '', $totalHrgBeli, $totalHrgJual, $totalUntung];
+        $rows[] = ['', 'TOTAL', '', '', '', '', $this->rupiah($totalHrgBeli), $this->rupiah($totalHrgJual), $this->rupiah($totalUntung)];
 
         return ['headings' => $headings, 'rows' => $rows];
     }
@@ -465,7 +520,7 @@ class ReportController extends Controller
                 $po->date ? date('d-F-Y', strtotime($po->date)) : '',
                 $po->kode_po,
                 $po->supplier?->nama_supplier ?? $po->nama_supplier,
-                number_format((float) $po->subtotal),
+                $this->rupiah((float) $po->subtotal),
                 (int) $po->status === 2 ? 'Draft' : 'Dikirim',
                 (int) $po->status_terima === 1 ? 'Sudah DiTerima' : 'Belum DiTerima',
                 $statusBayar,
@@ -473,7 +528,7 @@ class ReportController extends Controller
             ];
         }
 
-        $rows[] = ['', '', '', 'TOTAL', number_format($total)];
+        $rows[] = ['', '', '', 'TOTAL', $this->rupiah($total)];
 
         return [
             'headings' => ['Id', 'Tanggal', 'Kode PO', 'Nama Supplier', 'Total Pembayaran', 'Status PO', 'Status Barang', 'Status Bayar', 'Jatuh Tempo'],
@@ -511,6 +566,11 @@ class ReportController extends Controller
         $data = array_merge([$report['headings']], $report['rows']);
 
         return Excel::download(new ReportExport($data), $filename.'.xlsx');
+    }
+
+    private function rupiah(mixed $value): string
+    {
+        return number_format((float) $value, 0, ',', '.');
     }
 
     /**

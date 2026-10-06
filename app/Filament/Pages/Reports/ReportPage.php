@@ -18,6 +18,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Illuminate\Pagination\LengthAwarePaginator;
 use UnitEnum;
 
 abstract class ReportPage extends Page implements HasTable
@@ -45,6 +46,11 @@ abstract class ReportPage extends Page implements HasTable
     protected static string $reportType = '';
 
     /**
+     * @var array{headings: array<int, string>, rows: array<int, array<int, mixed>>}|null
+     */
+    protected ?array $cachedReport = null;
+
+    /**
      * @var array<int, array{key: string, label: string, type: string, source?: string, choices?: array<string, string>}>
      */
     protected static array $filterFields = [];
@@ -63,6 +69,18 @@ abstract class ReportPage extends Page implements HasTable
         }
 
         $this->form->fill($defaults);
+    }
+
+    /**
+     * The table columns depend on the selected filters (e.g. the laba rugi
+     * report changes its headings based on "Jenis Laporan"). The table is built
+     * during boot, before Livewire applies the filter update, so we rebuild it
+     * here to keep the columns and records in sync.
+     */
+    public function updatedData(): void
+    {
+        $this->cachedReport = null;
+        $this->table = $this->table($this->makeTable());
     }
 
     public function form(Schema $schema): Schema
@@ -97,7 +115,27 @@ abstract class ReportPage extends Page implements HasTable
 
         return $table
             ->columns($columns)
-            ->records(fn (): array => $this->report()['rows'])
+            ->records(function (int|string $page, int|string|null $recordsPerPage): LengthAwarePaginator {
+                $rows = $this->report()['rows'];
+                $total = count($rows);
+
+                $perPage = ($recordsPerPage === 'all')
+                    ? max($total, 1)
+                    : (int) ($recordsPerPage ?: $this->getDefaultTableRecordsPerPageSelectOption());
+
+                $page = max((int) $page, 1);
+
+                return new LengthAwarePaginator(
+                    array_slice($rows, ($page - 1) * $perPage, $perPage),
+                    $total,
+                    $perPage,
+                    $page,
+                    [
+                        'path' => LengthAwarePaginator::resolveCurrentPath(),
+                        'pageName' => $this->getTablePaginationPageName(),
+                    ],
+                );
+            })
             ->paginated([10, 25, 50, 100])
             ->defaultPaginationPageOption(25)
             ->striped()
@@ -109,9 +147,13 @@ abstract class ReportPage extends Page implements HasTable
      */
     protected function report(): array
     {
+        if ($this->cachedReport !== null) {
+            return $this->cachedReport;
+        }
+
         $filters = $this->data ?? [];
 
-        return match (static::$reportType) {
+        return $this->cachedReport = match (static::$reportType) {
             'barang-masuk' => app(ReportController::class)->barangMasuk($filters),
             'penjualan' => app(ReportController::class)->penjualan($filters),
             'barang-keluar' => app(ReportController::class)->barangKeluar($filters),

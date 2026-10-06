@@ -47,8 +47,7 @@ class BarangForm
                     ->maxLength(100),
                 TextInput::make('harga')
                     ->label('Price List')
-                    ->numeric()
-                    ->prefix('Rp')
+                    ->money()
                     ->default(0),
                 Toggle::make('wajib_serial_number')
                     ->label('Wajib Serial Number'),

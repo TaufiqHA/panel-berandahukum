@@ -21,11 +21,24 @@ class LineItems
      */
     public static function lineSubtotal(array $item): float
     {
-        $price = (float) ($item['price'] ?? 0);
-        $quantity = (float) ($item['jumlah'] ?? 1);
-        $discount = (float) ($item['discount'] ?? 0);
+        $price = self::toNumber($item['price'] ?? 0);
+        $quantity = self::toNumber($item['jumlah'] ?? 1);
+        $discount = self::toNumber($item['discount'] ?? 0);
 
         return round($price * $quantity * (1 - $discount / 100));
+    }
+
+    /**
+     * Normalise a value that may be a number or an Indonesian formatted string
+     * (e.g. "1.385.000") into a float.
+     */
+    public static function toNumber(mixed $value): float
+    {
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return (float) preg_replace('/[^0-9-]/', '', (string) $value);
     }
 
     /**
@@ -138,8 +151,7 @@ class LineItems
 
         $schema[] = TextInput::make('price')
             ->label('Harga')
-            ->numeric()
-            ->prefix('Rp')
+            ->money()
             ->live()
             ->required();
 
@@ -205,8 +217,7 @@ class LineItems
 
             $schema[] = TextInput::make('price')
                 ->label('Harga')
-                ->numeric()
-                ->prefix('Rp')
+                ->money()
                 ->live()
                 ->required();
 
