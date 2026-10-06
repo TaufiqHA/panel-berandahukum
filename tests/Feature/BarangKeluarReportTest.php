@@ -40,7 +40,7 @@ test('laporan barang keluar memakai kolom yang diinginkan dan memuat keterangan'
 
     expect($report['headings'])->toBe([
         'No',
-        'No Ref',
+        'Kode Barang Keluar',
         'Nama Barang',
         'Serial Number',
         'Nama Toko',

@@ -178,7 +178,7 @@ class ReportController extends Controller
         }
 
         return [
-            'headings' => ['No', 'No Ref', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Penerima', 'Harga', 'Keterangan'],
+            'headings' => ['No', 'Kode Barang Keluar', 'Nama Barang', 'Serial Number', 'Nama Toko', 'Tanggal Keluar', 'Nama Penerima', 'Harga', 'Keterangan'],
             'rows' => $rows,
         ];
     }
