@@ -324,7 +324,7 @@ class ReportController extends Controller
         $no = 1;
 
         if ($jenis === '2') {
-            $headings = ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Metode Pembayaran', 'Nama Toko', 'Cara Pembayaran', 'Total Pembayaran', 'DP', 'Sisa', 'Total Hrg.Beli', 'Keuntungan', 'Status', 'Nama Project'];
+            $headings = ['No', 'Tanggal', 'Kode Penjualan', 'Nama Pembeli', 'Cara Bayar', 'Nama Toko', 'Status Bayar', 'Total Pembayaran', 'DP', 'Sisa', 'Total Hrg.Beli', 'Keuntungan', 'Status', 'Nama Project'];
             $totalHrgBeli = $totalPembayaran = $totalDp = $totalSisa = $totalUntung = 0;
 
             foreach ($query->orderBy('date', 'desc')->get() as $penjualan) {
