@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->sidebarFullyCollapsibleOnDesktop()
             ->maxContentWidth('full')
+            ->resourceEditPageRedirect('index')
             ->brandName('Melindastore')
             ->colors([
                 'primary' => Color::Indigo,
