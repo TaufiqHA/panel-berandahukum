@@ -50,6 +50,7 @@ class ReportController extends Controller
 
             $rows[] = [
                 $no++,
+                $stock->id,
                 $stock->barang->nama_product,
                 $stock->jumlah,
                 $stock->tanggal_masuk ? date('d F Y', strtotime($stock->tanggal_masuk)) : '',
@@ -64,7 +65,7 @@ class ReportController extends Controller
         }
 
         return [
-            'headings' => ['No', 'Nama Barang', 'Jumlah', 'Tanggal Masuk', 'Harga Beli', 'Harga Jual', 'Price List', 'Made In', 'Supplier', 'Toko', 'Keterangan'],
+            'headings' => ['No', 'ID Barang Masuk', 'Nama Barang', 'Jumlah', 'Tanggal Masuk', 'Harga Beli', 'Harga Jual', 'Price List', 'Made In', 'Supplier', 'Toko', 'Keterangan'],
             'rows' => $rows,
         ];
     }
