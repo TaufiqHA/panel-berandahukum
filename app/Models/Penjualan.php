@@ -71,6 +71,7 @@ class Penjualan extends Model
     {
         return $this->belongsToMany(
             Barang::class, 'detail_penjualans', 'penjualan_id', 'barang_id')
+            ->whereNull('detail_penjualans.deleted_at')
             ->select('barangs.id', 'barangs.nama_product', 'barangs.satuan', 'detail_penjualans.price', 'detail_penjualans.discount')
             ->selectRaw('count(detail_penjualans.barang_id) as pivot_count')
             ->groupBy('barangs.kategori_id', 'barangs.id', 'barangs.nama_product', 'barangs.merk', 'barangs.satuan', 'barangs.warna', 'barangs.berat', 'barangs.ukuran', 'barangs.keterangan', 'barangs.wajib_serial_number', 'detail_penjualans.penjualan_id', 'detail_penjualans.barang_id', 'detail_penjualans.price', 'detail_penjualans.discount')->orderBy('detail_penjualans.id');

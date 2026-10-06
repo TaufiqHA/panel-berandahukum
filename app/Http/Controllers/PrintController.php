@@ -157,11 +157,11 @@ class PrintController extends Controller
 
     private function resolveSerialNumber($detail)
     {
-        $serial_number = $this->serialNumberValue($detail->serial_number_id);
-        if (! empty($serial_number)) {
-            return $serial_number;
-        }
-
+        /**
+         * The stock unit holds the real serial number text. On some imported rows
+         * `detail_penjualans.serial_number_id` wrongly stores the unit id, so the
+         * unit is checked first and the detail column is only used as a fallback.
+         */
         $gudang_barang = $detail->gudang_barang;
         if ($gudang_barang) {
             $serial_number = $this->serialNumberValue($gudang_barang->serial_number_id);
@@ -175,7 +175,7 @@ class PrintController extends Controller
             }
         }
 
-        return null;
+        return $this->serialNumberValue($detail->serial_number_id);
     }
 
     private function serialNumberValue($value)

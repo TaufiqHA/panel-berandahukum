@@ -28,5 +28,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('barang/export/pdf', [BarangController::class, 'exportPdf'])->name('barang.export.pdf');
 
+    Route::get('maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
     Route::get('maintenance/clear-cache', [MaintenanceController::class, 'clearCache'])->name('maintenance.clear-cache');
+    Route::get('maintenance/migrate', [MaintenanceController::class, 'migrate'])->name('maintenance.migrate');
+    Route::get('maintenance/migrate-status', [MaintenanceController::class, 'migrateStatus'])->name('maintenance.migrate-status');
+    Route::get('maintenance/optimize', [MaintenanceController::class, 'optimize'])->name('maintenance.optimize');
+    Route::get('maintenance/optimize-clear', [MaintenanceController::class, 'optimizeClear'])->name('maintenance.optimize-clear');
+    Route::get('maintenance/storage-link', [MaintenanceController::class, 'storageLink'])->name('maintenance.storage-link');
 });

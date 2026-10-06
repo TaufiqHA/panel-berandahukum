@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Maintenance Token
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret required by the browser maintenance routes (migrate,
+    | optimize, ...). When set, the routes need a matching "?token=" value in
+    | addition to an authenticated full-admin session. Leave empty to rely on
+    | the admin session only.
+    |
+    */
+
+    'maintenance_token' => env('MAINTENANCE_TOKEN'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
