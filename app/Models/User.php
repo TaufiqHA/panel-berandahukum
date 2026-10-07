@@ -57,6 +57,15 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Determine whether the user is a super admin, the only role allowed to
+     * manage the IP whitelist and to bypass it.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return (int) $this->status === 1 && (int) $this->status_admin !== 1;
+    }
+
+    /**
      * Determine whether the user may access the given menu group.
      */
     public function hasMenu(string $menu): bool

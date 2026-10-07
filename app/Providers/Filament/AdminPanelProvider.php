@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Http\Middleware\CheckBlockedIp;
+use App\Http\Middleware\CheckWhitelistedIp;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -96,6 +97,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 CheckBlockedIp::class,
+                CheckWhitelistedIp::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
