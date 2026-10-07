@@ -4,6 +4,9 @@ namespace App\Filament\Resources\PindahTokoIns\Tables;
 
 use App\Filament\Resources\PindahGudangs\PindahGudangResource;
 use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -62,6 +65,13 @@ class PindahTokoInsTable
                             ->success()
                             ->send();
                     }),
+                DeleteAction::make()
+                    ->after(fn ($record) => PindahGudangResource::revertAndDelete($record->id)),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
             ]);
     }
 }

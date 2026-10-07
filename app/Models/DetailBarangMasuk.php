@@ -25,6 +25,6 @@ class DetailBarangMasuk extends Model
 
     public function gudang_barang()
     {
-        return $this->belongsTo(GudangBarang::class);
+        return $this->belongsTo(GudangBarang::class)->withTrashed();
     }
 }

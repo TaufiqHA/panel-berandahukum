@@ -65,7 +65,7 @@ class EditStockIn extends EditRecord
         foreach ($this->serialRows as $row) {
             $gudangId = $row['gudang_barang_id'] ?? null;
 
-            if ($gudangId && $gudang = GudangBarang::find($gudangId)) {
+            if ($gudangId && $gudang = GudangBarang::withTrashed()->find($gudangId)) {
                 $gudang->update([
                     'serial_number_id' => $row['serial_number'] ?? null,
                     'barang_id' => $stockIn->barang_id,

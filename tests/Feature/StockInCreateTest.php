@@ -48,6 +48,49 @@ test('creates a barang masuk with one-by-one serial numbers', function () {
     expect(DetailBarangMasuk::count())->toBe(2);
 });
 
+test('serial number tetap tampil di edit barang masuk walau unitnya sudah terjual', function () {
+    $this->actingAs(User::factory()->create(['status' => 1]));
+
+    $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
+    $kategori = Kategori::create(['nama_kategori' => 'Audio']);
+    $barang = Barang::create([
+        'kategori_id' => $kategori->id,
+        'nama_product' => 'Speaker',
+        'harga' => 1000000,
+    ]);
+
+    Livewire::test(CreateStockIn::class)
+        ->fillForm([
+            'barang_id' => $barang->id,
+            'jumlah' => 2,
+            'tanggal_masuk' => now()->toDateString(),
+            'toko_id' => $toko->id,
+            'type_serial_number' => 2,
+            'harga_beli' => 800000,
+            'serial_items' => [
+                ['serial_number' => 'SN-001'],
+                ['serial_number' => 'SN-002'],
+            ],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    // Unit SN-001 terjual sehingga gudang_barang-nya di-soft delete.
+    GudangBarang::where('serial_number_id', 'SN-001')->firstOrFail()->delete();
+
+    $stockIn = StockIn::firstOrFail();
+
+    Livewire::test(EditStockIn::class, ['record' => $stockIn->getRouteKey()])
+        ->assertFormSet(function (array $state): array {
+            $serials = collect($state['serial_items'] ?? [])->pluck('serial_number')->all();
+
+            expect($serials)->toContain('SN-001');
+            expect($serials)->toContain('SN-002');
+
+            return [];
+        });
+});
+
 test('price list barang masuk diambil dari price list master barang saat dibuat', function () {
     $this->actingAs(User::factory()->create(['status' => 1]));
 
