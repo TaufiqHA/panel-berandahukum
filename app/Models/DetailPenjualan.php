@@ -38,4 +38,42 @@ class DetailPenjualan extends Model
     {
         return $this->belongsTo(GudangBarang::class)->withTrashed();
     }
+
+    /**
+     * Resolve the serial number text for this sale line.
+     *
+     * The stock unit owns the real serial number text. On some imported rows
+     * `detail_penjualans.serial_number_id` wrongly stores the unit id, so the
+     * unit is checked first and the detail column is only used as a fallback.
+     */
+    public function resolveSerialNumber(): string
+    {
+        $unit = $this->gudang_barang;
+
+        if ($unit !== null) {
+            $serial = self::serialNumberValue($unit->serial_number_id)
+                ?? self::serialNumberValue(optional($unit->serial_number)->serial_number);
+
+            if (! empty($serial)) {
+                return $serial;
+            }
+        }
+
+        return self::serialNumberValue($this->serial_number_id) ?? '';
+    }
+
+    private static function serialNumberValue(mixed $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        $serialNumber = SerialNumber::withTrashed()->find($value);
+
+        if ($serialNumber !== null && ! empty($serialNumber->serial_number)) {
+            return $serialNumber->serial_number;
+        }
+
+        return is_scalar($value) ? (string) $value : null;
+    }
 }

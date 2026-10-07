@@ -112,9 +112,7 @@ class ReportController extends Controller
 
         foreach ($query->orderBy('date', 'desc')->get() as $penjualan) {
             foreach ($penjualan->detail_penjualan as $detail) {
-                $serial = $detail->serial_number->serial_number
-                    ?? $detail->gudang_barang?->serial_number?->serial_number
-                    ?? '';
+                $serial = $detail->resolveSerialNumber();
 
                 $rows[] = [
                     $no++,
@@ -429,9 +427,7 @@ class ReportController extends Controller
                 $hargaJual = (float) $detail->price - ((float) $detail->price * (float) $detail->discount / 100);
                 $untung = $hargaJual - $hargaBeli;
 
-                $serial = $detail->serial_number->serial_number
-                    ?? $detail->gudang_barang?->serial_number?->serial_number
-                    ?? '';
+                $serial = $detail->resolveSerialNumber();
 
                 $totalHrgBeli += $hargaBeli;
                 $totalHrgJual += $hargaJual;

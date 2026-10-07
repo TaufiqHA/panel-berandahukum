@@ -46,7 +46,13 @@ class Stock extends Page implements HasTable
         return $table
             ->query(
                 GudangBarang::query()
-                    ->with(['barang', 'toko', 'detail_barang_masuk.stock_in'])
+                    ->with([
+                        'barang',
+                        'toko',
+                        'detail_barang_masuk' => fn ($query) => $query->withTrashed()->with([
+                            'stock_in' => fn ($stockIn) => $stockIn->withTrashed(),
+                        ]),
+                    ])
             )
             ->columns([
                 TextColumn::make('barang.nama_product')->limit(30)
@@ -73,13 +79,10 @@ class Stock extends Page implements HasTable
                     ->label('Stok')
                     ->badge()
                     ->color('success')
-                    ->state(fn (GudangBarang $record): int => GudangBarang::query()
-                        ->where('barang_id', $record->barang_id)
-                        ->where('toko_id', $record->toko_id)
-                        ->where('status', 1)
-                        ->count()),
+                    ->state(fn (): int => 1),
                 TextColumn::make('detail_barang_masuk.stock_in.id')->limit(30)
-                    ->label('Id'),
+                    ->label('ID Barang Masuk')
+                    ->placeholder('-'),
                 TextColumn::make('detail_barang_masuk.stock_in.tanggal_masuk')->limit(30)
                     ->label('Tanggal Masuk')
                     ->date('d M Y')

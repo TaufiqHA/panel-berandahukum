@@ -42,10 +42,7 @@ class SearchBarang extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                GudangBarang::query()
-                    ->with(['barang', 'toko', 'detail_barang_masuk.stock_in'])
-            )
+            ->query($this->searchQuery())
             ->columns([
                 TextColumn::make('barang.nama_product')->limit(30)
                     ->label('Nama Barang')
@@ -61,18 +58,32 @@ class SearchBarang extends Page implements HasTable
                 TextColumn::make('status')->limit(30)
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn ($state): string => match ((int) $state) {
-                        1 => 'Stock',
-                        3 => 'Barang Keluar',
-                        default => 'Lainnya',
-                    })
-                    ->color(fn ($state): string => match ((int) $state) {
-                        1 => 'success',
-                        3 => 'warning',
-                        default => 'gray',
-                    }),
+                    ->formatStateUsing(fn ($state, GudangBarang $record): string => $record->trashed()
+                        ? 'Terjual'
+                        : match ((int) $state) {
+                            1 => 'Stock',
+                            3 => 'Barang Keluar',
+                            default => 'Lainnya',
+                        })
+                    ->color(fn ($state, GudangBarang $record): string => $record->trashed()
+                        ? 'danger'
+                        : match ((int) $state) {
+                            1 => 'success',
+                            3 => 'warning',
+                            default => 'gray',
+                        }),
                 TextColumn::make('detail_barang_masuk.stock_in.tanggal_masuk')->limit(30)
                     ->label('Tanggal Masuk')
+                    ->date('d M Y')
+                    ->placeholder('-'),
+                TextColumn::make('detail_penjualan.penjualan.kode_penjualan')->limit(30)
+                    ->label('Kode Penjualan')
+                    ->placeholder('-'),
+                TextColumn::make('detail_penjualan.penjualan.nama_pembeli')->limit(30)
+                    ->label('Nama Pembeli')
+                    ->placeholder('-'),
+                TextColumn::make('detail_penjualan.penjualan.date')->limit(30)
+                    ->label('Tanggal Penjualan')
                     ->date('d M Y')
                     ->placeholder('-'),
                 TextColumn::make('detail_barang_masuk.stock_in.harga_beli')->limit(30)
@@ -105,14 +116,41 @@ class SearchBarang extends Page implements HasTable
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        1 => 'Stock',
-                        3 => 'Barang Keluar',
-                    ]),
+                        'stock' => 'Stock',
+                        'barang_keluar' => 'Barang Keluar',
+                        'terjual' => 'Terjual',
+                    ])
+                    ->query(function (Builder $query, array $data): void {
+                        match ($data['value'] ?? null) {
+                            'stock' => $query->whereNull('deleted_at')->where('status', 1),
+                            'barang_keluar' => $query->whereNull('deleted_at')->where('status', 3),
+                            'terjual' => $query->whereNotNull('deleted_at'),
+                            default => null,
+                        };
+                    }),
             ]);
     }
 
     public function getTableQuery(): Builder
     {
-        return GudangBarang::query();
+        return $this->searchQuery();
+    }
+
+    /**
+     * Sold units and the stock-in records they originated from may be
+     * soft-deleted, so the history chain is loaded including trashed rows.
+     */
+    private function searchQuery(): Builder
+    {
+        return GudangBarang::query()
+            ->withTrashed()
+            ->with([
+                'barang',
+                'toko',
+                'detail_penjualan.penjualan',
+                'detail_barang_masuk' => fn ($query) => $query->withTrashed()->with([
+                    'stock_in' => fn ($stockIn) => $stockIn->withTrashed(),
+                ]),
+            ]);
     }
 }

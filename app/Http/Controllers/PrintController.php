@@ -11,7 +11,6 @@ use App\Models\Penjualan;
 use App\Models\PindahGudang;
 use App\Models\Po;
 use App\Models\Quotation;
-use App\Models\SerialNumber;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -157,39 +156,7 @@ class PrintController extends Controller
 
     private function resolveSerialNumber($detail)
     {
-        /**
-         * The stock unit holds the real serial number text. On some imported rows
-         * `detail_penjualans.serial_number_id` wrongly stores the unit id, so the
-         * unit is checked first and the detail column is only used as a fallback.
-         */
-        $gudang_barang = $detail->gudang_barang;
-        if ($gudang_barang) {
-            $serial_number = $this->serialNumberValue($gudang_barang->serial_number_id);
-            if (! empty($serial_number)) {
-                return $serial_number;
-            }
-
-            $serial_number = optional($gudang_barang->serial_number)->serial_number;
-            if (! empty($serial_number)) {
-                return $serial_number;
-            }
-        }
-
-        return $this->serialNumberValue($detail->serial_number_id);
-    }
-
-    private function serialNumberValue($value)
-    {
-        if (empty($value)) {
-            return null;
-        }
-
-        $serial_number = SerialNumber::withTrashed()->find($value);
-        if ($serial_number && ! empty($serial_number->serial_number)) {
-            return $serial_number->serial_number;
-        }
-
-        return is_scalar($value) ? (string) $value : null;
+        return $detail->resolveSerialNumber();
     }
 
     private function attachSerialNumbers($penjualan)
