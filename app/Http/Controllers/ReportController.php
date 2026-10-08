@@ -78,6 +78,7 @@ class ReportController extends Controller
     public function penjualan(array $filters): array
     {
         [$from, $to] = $this->range($filters);
+        $barangIds = array_map('intval', (array) ($filters['nama_barang'] ?? []));
 
         $query = Penjualan::with([
             'toko',
@@ -90,11 +91,18 @@ class ReportController extends Controller
             $query->whereIn('toko_id', (array) $filters['nama_toko']);
         }
 
-        if (! empty($filters['nama_barang'])) {
-            $query->whereIn('id', function ($sub) use ($filters): void {
+        if ($barangIds !== []) {
+            $query->whereIn('id', function ($sub) use ($barangIds): void {
                 $sub->select('penjualan_id')
                     ->from('detail_penjualans')
-                    ->whereIn('barang_id', (array) $filters['nama_barang'])
+                    ->where(function ($sub) use ($barangIds): void {
+                        $sub->whereIn('barang_id', $barangIds)
+                            ->orWhereIn('gudang_barang_id', function ($sub) use ($barangIds): void {
+                                $sub->select('id')
+                                    ->from('gudang_barangs')
+                                    ->whereIn('barang_id', $barangIds);
+                            });
+                    })
                     ->groupBy('penjualan_id');
             });
         }
@@ -112,6 +120,12 @@ class ReportController extends Controller
 
         foreach ($query->orderBy('date', 'desc')->get() as $penjualan) {
             foreach ($penjualan->detail_penjualan as $detail) {
+                if ($barangIds !== []
+                    && ! in_array((int) $detail->barang_id, $barangIds, true)
+                    && ! in_array((int) $detail->gudang_barang?->barang_id, $barangIds, true)) {
+                    continue;
+                }
+
                 $serial = $detail->resolveSerialNumber();
 
                 $rows[] = [
@@ -346,6 +360,7 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->range($filters);
         $jenis = (string) ($filters['jenis_report'] ?? '1');
+        $barangIds = array_map('intval', (array) ($filters['nama_barang'] ?? []));
 
         $query = Penjualan::with([
             'toko',
@@ -359,11 +374,18 @@ class ReportController extends Controller
             $query->whereIn('toko_id', (array) $filters['nama_toko']);
         }
 
-        if (! empty($filters['nama_barang'])) {
-            $query->whereIn('id', function ($sub) use ($filters): void {
+        if ($barangIds !== []) {
+            $query->whereIn('id', function ($sub) use ($barangIds): void {
                 $sub->select('penjualan_id')
                     ->from('detail_penjualans')
-                    ->whereIn('barang_id', (array) $filters['nama_barang'])
+                    ->where(function ($sub) use ($barangIds): void {
+                        $sub->whereIn('barang_id', $barangIds)
+                            ->orWhereIn('gudang_barang_id', function ($sub) use ($barangIds): void {
+                                $sub->select('id')
+                                    ->from('gudang_barangs')
+                                    ->whereIn('barang_id', $barangIds);
+                            });
+                    })
                     ->groupBy('penjualan_id');
             });
         }
@@ -423,6 +445,12 @@ class ReportController extends Controller
 
         foreach ($query->orderBy('date', 'desc')->get() as $penjualan) {
             foreach ($penjualan->detail_penjualan as $detail) {
+                if ($barangIds !== []
+                    && ! in_array((int) $detail->barang_id, $barangIds, true)
+                    && ! in_array((int) $detail->gudang_barang?->barang_id, $barangIds, true)) {
+                    continue;
+                }
+
                 $hargaBeli = (float) ($detail->gudang_barang?->detail_barang_masuk?->stock_in?->harga_beli ?? 0);
                 $hargaJual = (float) $detail->price - ((float) $detail->price * (float) $detail->discount / 100);
                 $untung = $hargaJual - $hargaBeli;

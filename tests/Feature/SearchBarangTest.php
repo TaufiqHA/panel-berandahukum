@@ -89,7 +89,38 @@ test('search page lists sold units with buyer, sale date and entry date', functi
         ->assertTableColumnStateSet('detail_penjualan.penjualan.kode_penjualan', 'PJ-1', record: $unit)
         ->assertTableColumnStateSet('detail_penjualan.penjualan.nama_pembeli', 'PT UG Mandiri', record: $unit)
         ->assertTableColumnStateSet('detail_penjualan.penjualan.date', '2026-09-21', record: $unit)
+        ->assertTableColumnFormattedStateSet('detail_penjualan.penjualan.date', '21 Sep 2026', record: $unit)
         ->assertTableColumnStateSet('detail_barang_masuk.stock_in.tanggal_masuk', '2026-09-14', record: $unit);
+});
+
+test('search page still shows the buyer when the sale detail is soft deleted', function () {
+    ['unit' => $unit, 'penjualan' => $penjualan] = createSoldSearchUnit();
+
+    DetailPenjualan::where('penjualan_id', $penjualan->id)->delete();
+
+    Livewire::test(SearchBarang::class)
+        ->assertCanSeeTableRecords([$unit])
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.kode_penjualan', 'PJ-1', record: $unit)
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.nama_pembeli', 'PT UG Mandiri', record: $unit)
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.date', '2026-09-21', record: $unit);
+});
+
+test('search page recovers the sale when the detail lost its unit link', function () {
+    ['unit' => $unit, 'penjualan' => $penjualan] = createSoldSearchUnit();
+
+    // Imported sales sometimes stored 0 instead of the stock unit id.
+    DetailPenjualan::withTrashed()
+        ->where('penjualan_id', $penjualan->id)
+        ->update(['gudang_barang_id' => 0]);
+
+    $penjualan->forceFill(['created_at' => '2026-09-21 10:00:00'])->save();
+    $unit->forceFill(['deleted_at' => '2026-09-21 10:00:00'])->save();
+
+    Livewire::test(SearchBarang::class)
+        ->assertCanSeeTableRecords([$unit])
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.kode_penjualan', 'PJ-1', record: $unit)
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.nama_pembeli', 'PT UG Mandiri', record: $unit)
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.date', '2026-09-21', record: $unit);
 });
 
 test('search page finds a sold unit by serial number', function () {
@@ -132,4 +163,23 @@ test('search page filters sold and stock units separately', function () {
         ->filterTable('status', 'terjual')
         ->assertCanSeeTableRecords([$sold])
         ->assertCanNotSeeTableRecords([$stock]);
+});
+
+test('a deleted unit without a sale is not marked as sold', function () {
+    ['unit' => $sold] = createSoldSearchUnit();
+
+    $deleted = GudangBarang::create([
+        'barang_id' => $sold->barang_id,
+        'serial_number_id' => 'SN-DELETED-1',
+        'toko_id' => $sold->toko_id,
+        'status' => 1,
+    ]);
+    $deleted->delete();
+
+    Livewire::test(SearchBarang::class)
+        ->assertTableColumnFormattedStateSet('status', 'Terjual', record: $sold)
+        ->assertTableColumnFormattedStateSet('status', 'Dihapus', record: $deleted)
+        ->filterTable('status', 'terjual')
+        ->assertCanSeeTableRecords([$sold])
+        ->assertCanNotSeeTableRecords([$deleted]);
 });

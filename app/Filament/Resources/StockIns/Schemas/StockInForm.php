@@ -113,6 +113,7 @@ class StockInForm
                                 ->maxLength(255),
                         ])
                         ->columns(1)
+                        ->grid(['default' => 1, 'sm' => 2, 'md' => 3, 'xl' => 5])
                         ->visible(fn ($get, string $operation): bool => $operation === 'edit' || (int) $get('type_serial_number') === 2)
                         ->columnSpanFull(),
                 ])->columns(1),

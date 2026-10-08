@@ -58,32 +58,35 @@ class SearchBarang extends Page implements HasTable
                 TextColumn::make('status')->limit(30)
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn ($state, GudangBarang $record): string => $record->trashed()
-                        ? 'Terjual'
-                        : match ((int) $state) {
-                            1 => 'Stock',
-                            3 => 'Barang Keluar',
-                            default => 'Lainnya',
-                        })
-                    ->color(fn ($state, GudangBarang $record): string => $record->trashed()
-                        ? 'danger'
-                        : match ((int) $state) {
-                            1 => 'success',
-                            3 => 'warning',
-                            default => 'gray',
-                        }),
+                    ->formatStateUsing(fn (GudangBarang $record): string => match (true) {
+                        $record->resolvePenjualan() !== null => 'Terjual',
+                        $record->trashed() => 'Dihapus',
+                        (int) $record->status === 1 => 'Stock',
+                        (int) $record->status === 3 => 'Barang Keluar',
+                        default => 'Lainnya',
+                    })
+                    ->color(fn (GudangBarang $record): string => match (true) {
+                        $record->resolvePenjualan() !== null => 'danger',
+                        $record->trashed() => 'gray',
+                        (int) $record->status === 1 => 'success',
+                        (int) $record->status === 3 => 'warning',
+                        default => 'gray',
+                    }),
                 TextColumn::make('detail_barang_masuk.stock_in.tanggal_masuk')->limit(30)
                     ->label('Tanggal Masuk')
                     ->date('d M Y')
                     ->placeholder('-'),
                 TextColumn::make('detail_penjualan.penjualan.kode_penjualan')->limit(30)
                     ->label('Kode Penjualan')
+                    ->state(fn (GudangBarang $record): ?string => $record->resolvePenjualan()?->kode_penjualan)
                     ->placeholder('-'),
                 TextColumn::make('detail_penjualan.penjualan.nama_pembeli')->limit(30)
                     ->label('Nama Pembeli')
+                    ->state(fn (GudangBarang $record): ?string => $record->resolvePenjualan()?->nama_pembeli)
                     ->placeholder('-'),
                 TextColumn::make('detail_penjualan.penjualan.date')->limit(30)
                     ->label('Tanggal Penjualan')
+                    ->state(fn (GudangBarang $record): ?string => $record->resolvePenjualan()?->date)
                     ->date('d M Y')
                     ->placeholder('-'),
                 TextColumn::make('detail_barang_masuk.stock_in.harga_beli')->limit(30)
@@ -124,7 +127,7 @@ class SearchBarang extends Page implements HasTable
                         match ($data['value'] ?? null) {
                             'stock' => $query->whereNull('deleted_at')->where('status', 1),
                             'barang_keluar' => $query->whereNull('deleted_at')->where('status', 3),
-                            'terjual' => $query->whereNotNull('deleted_at'),
+                            'terjual' => $this->whereSold($query->whereNotNull('deleted_at')),
                             default => null,
                         };
                     }),
@@ -134,6 +137,27 @@ class SearchBarang extends Page implements HasTable
     public function getTableQuery(): Builder
     {
         return $this->searchQuery();
+    }
+
+    /**
+     * Only treat a unit as sold when it actually links to a sale, either through
+     * its sale detail or through a legacy orphaned detail row.
+     */
+    private function whereSold(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->whereHas('detail_penjualan.penjualan')
+                ->orWhereExists(function ($sub): void {
+                    $sub->selectRaw('1')
+                        ->from('detail_penjualans')
+                        ->join('penjualans', 'penjualans.id', '=', 'detail_penjualans.penjualan_id')
+                        ->whereNull('penjualans.deleted_at')
+                        ->whereColumn('detail_penjualans.barang_id', 'gudang_barangs.barang_id')
+                        ->whereColumn('detail_penjualans.created_at', 'gudang_barangs.deleted_at')
+                        ->where(fn ($sub) => $sub->whereNull('detail_penjualans.gudang_barang_id')
+                            ->orWhere('detail_penjualans.gudang_barang_id', 0));
+                });
+        });
     }
 
     /**

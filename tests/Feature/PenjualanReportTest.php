@@ -197,3 +197,61 @@ test('laporan penjualan dapat difilter berdasarkan status bayar', function () {
     expect($kodeUntuk('Lunas'))->toBe(['PJ-LUNAS'])
         ->and($kodeUntuk('DP'))->toBe(['PJ-DP']);
 });
+
+test('laporan penjualan berdasarkan barang hanya menampilkan barang yang dipilih', function () {
+    $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
+    $kategori = Kategori::create(['nama_kategori' => 'Audio']);
+
+    $speaker = Barang::create(['kategori_id' => $kategori->id, 'nama_product' => 'Speaker']);
+    $mic = Barang::create(['kategori_id' => $kategori->id, 'nama_product' => 'Microphone']);
+
+    $penjualan = Penjualan::create([
+        'date' => now()->toDateString(),
+        'kode_penjualan' => 'PJ-MIX',
+        'nama_pembeli' => 'Pembeli A',
+        'toko_id' => $toko->id,
+        'subtotal' => 2000000,
+        'status' => 1,
+        'ppn' => 0,
+        'show_infopembayaran' => 0,
+    ]);
+
+    $speakerUnit = GudangBarang::create([
+        'barang_id' => $speaker->id,
+        'serial_number_id' => 'SPK-1',
+        'toko_id' => $toko->id,
+        'status' => 1,
+    ]);
+
+    $micUnit = GudangBarang::create([
+        'barang_id' => $mic->id,
+        'serial_number_id' => 'MIC-1',
+        'toko_id' => $toko->id,
+        'status' => 1,
+    ]);
+
+    DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => $speaker->id,
+        'gudang_barang_id' => $speakerUnit->id,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+
+    DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => $mic->id,
+        'gudang_barang_id' => $micUnit->id,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+
+    $report = app(ReportController::class)->penjualan([
+        'jenis_report' => '1',
+        'nama_barang' => [$speaker->id],
+    ]);
+
+    expect($report['rows'])->toHaveCount(1)
+        ->and($report['rows'][0][2])->toBe('Speaker')
+        ->and($report['rows'][0][3])->toBe('SPK-1');
+});

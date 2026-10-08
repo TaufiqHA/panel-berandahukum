@@ -171,3 +171,49 @@ test('laporan laba rugi hanya memasukkan penjualan yang sudah lunas', function (
     $kodeBarang = array_column(array_slice($perBarang['rows'], 0, -1), 2);
     expect($kodeBarang)->toEqualCanonicalizing(['PJ-LUNAS', 'PJ-CBD']);
 });
+
+test('laporan laba rugi berdasarkan barang hanya menampilkan barang yang dipilih', function () {
+    $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
+    $kategori = Kategori::create(['nama_kategori' => 'Audio']);
+
+    $speaker = Barang::create(['kategori_id' => $kategori->id, 'nama_product' => 'Speaker']);
+    $mic = Barang::create(['kategori_id' => $kategori->id, 'nama_product' => 'Microphone']);
+
+    $penjualan = Penjualan::create([
+        'date' => now()->toDateString(),
+        'kode_penjualan' => 'PJ-MIX',
+        'nama_pembeli' => 'Pembeli A',
+        'toko_id' => $toko->id,
+        'subtotal' => 2000000,
+        'status' => 1,
+        'ppn' => 0,
+        'show_infopembayaran' => 0,
+        'payment_status' => 'Lunas',
+        'sisa' => 0,
+    ]);
+
+    DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => $speaker->id,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+
+    DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => $mic->id,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+
+    $report = app(ReportController::class)->labaRugi([
+        'jenis_report' => '1',
+        'nama_barang' => [$speaker->id],
+    ]);
+
+    // Baris terakhir adalah baris TOTAL.
+    $rows = array_slice($report['rows'], 0, -1);
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows[0][3])->toBe('Speaker');
+});
