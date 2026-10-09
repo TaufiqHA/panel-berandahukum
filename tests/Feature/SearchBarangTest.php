@@ -93,16 +93,32 @@ test('search page lists sold units with buyer, sale date and entry date', functi
         ->assertTableColumnStateSet('detail_barang_masuk.stock_in.tanggal_masuk', '2026-09-14', record: $unit);
 });
 
-test('search page still shows the buyer when the sale detail is soft deleted', function () {
+test('a unit is no longer sold when its sale detail is soft deleted', function () {
     ['unit' => $unit, 'penjualan' => $penjualan] = createSoldSearchUnit();
 
     DetailPenjualan::where('penjualan_id', $penjualan->id)->delete();
 
     Livewire::test(SearchBarang::class)
         ->assertCanSeeTableRecords([$unit])
-        ->assertTableColumnStateSet('detail_penjualan.penjualan.kode_penjualan', 'PJ-1', record: $unit)
-        ->assertTableColumnStateSet('detail_penjualan.penjualan.nama_pembeli', 'PT UG Mandiri', record: $unit)
-        ->assertTableColumnStateSet('detail_penjualan.penjualan.date', '2026-09-21', record: $unit);
+        ->assertTableColumnFormattedStateSet('status', 'Dihapus', record: $unit)
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.kode_penjualan', null, record: $unit)
+        ->filterTable('status', 'terjual')
+        ->assertCanNotSeeTableRecords([$unit]);
+});
+
+test('a stale orphaned sale detail does not mark a unit as sold', function () {
+    ['unit' => $unit, 'penjualan' => $penjualan] = createSoldSearchUnit();
+
+    // The sale line lost its unit link and was then removed from the sale.
+    DetailPenjualan::withTrashed()
+        ->where('penjualan_id', $penjualan->id)
+        ->update(['gudang_barang_id' => 0]);
+    DetailPenjualan::withTrashed()
+        ->where('penjualan_id', $penjualan->id)
+        ->delete();
+
+    Livewire::test(SearchBarang::class)
+        ->assertTableColumnFormattedStateSet('status', 'Dihapus', record: $unit);
 });
 
 test('search page recovers the sale when the detail lost its unit link', function () {

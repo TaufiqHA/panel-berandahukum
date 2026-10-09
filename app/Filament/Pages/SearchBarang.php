@@ -140,8 +140,9 @@ class SearchBarang extends Page implements HasTable
     }
 
     /**
-     * Only treat a unit as sold when it actually links to a sale, either through
-     * its sale detail or through a legacy orphaned detail row.
+     * Only treat a unit as sold while it links to an active sale line, either
+     * directly or through a legacy orphaned line. Soft-deleted lines mean the
+     * item was removed from the sale, so the unit is no longer sold.
      */
     private function whereSold(Builder $query): Builder
     {
@@ -152,8 +153,9 @@ class SearchBarang extends Page implements HasTable
                         ->from('detail_penjualans')
                         ->join('penjualans', 'penjualans.id', '=', 'detail_penjualans.penjualan_id')
                         ->whereNull('penjualans.deleted_at')
+                        ->whereNull('detail_penjualans.deleted_at')
                         ->whereColumn('detail_penjualans.barang_id', 'gudang_barangs.barang_id')
-                        ->whereColumn('detail_penjualans.created_at', 'gudang_barangs.deleted_at')
+                        ->whereColumn('penjualans.created_at', 'gudang_barangs.deleted_at')
                         ->where(fn ($sub) => $sub->whereNull('detail_penjualans.gudang_barang_id')
                             ->orWhere('detail_penjualans.gudang_barang_id', 0));
                 });

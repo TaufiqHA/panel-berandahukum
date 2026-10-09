@@ -43,17 +43,15 @@ class GudangBarang extends Model
     }
 
     /**
-     * Resolve the sale a unit was sold through, including historical details.
+     * Resolve the sale a unit was sold through.
      *
-     * A sale detail that is still active means the unit is genuinely part of a
-     * sale. A unit that is back in stock is never sold, even when a stale
-     * (soft-deleted) sale detail remains from a sale it was removed from. Only
-     * for soft-deleted units do we fall back to a soft-deleted detail so the
-     * buyer information is still available.
+     * A unit is only sold while it has an active sale line. A soft-deleted sale
+     * line means the item was removed from the sale, so the unit is not sold
+     * even though the stale line still exists.
      *
      * Imported sales sometimes stored `detail_penjualans.gudang_barang_id` as 0,
      * leaving the unit detached from its sale. The unit is soft deleted at the
-     * exact moment the sale detail is created, so the orphaned detail is
+     * exact moment the sale line is created, so an active orphaned line is
      * recovered by matching that timestamp together with the item.
      */
     public function resolvePenjualan(): ?Penjualan
@@ -74,20 +72,9 @@ class GudangBarang extends Model
             return $this->resolvedPenjualan = null;
         }
 
-        $historical = DetailPenjualan::withTrashed()
-            ->where('gudang_barang_id', $this->id)
-            ->whereHas('penjualan')
-            ->latest('id')
-            ->first();
-
-        if ($historical !== null) {
-            return $this->resolvedPenjualan = $historical->penjualan;
-        }
-
         return $this->resolvedPenjualan = Penjualan::query()
             ->where('created_at', $this->deleted_at)
             ->whereHas('detail_penjualan', fn (Builder $query): Builder => $query
-                ->withTrashed()
                 ->where('barang_id', $this->barang_id)
                 ->where(fn (Builder $query): Builder => $query
                     ->whereNull('gudang_barang_id')
