@@ -5,6 +5,7 @@ use App\Filament\Resources\Penjualans\Pages\CreatePenjualan;
 use App\Filament\Resources\Penjualans\Pages\EditPenjualan;
 use App\Filament\Resources\Pos\Pages\CreatePo;
 use App\Filament\Resources\Pos\Pages\EditPo;
+use App\Filament\Support\LineItems;
 use App\Models\Barang;
 use App\Models\BarangKeluar;
 use App\Models\DataBarangKeluar;
@@ -139,6 +140,26 @@ test('removing an item from a penjualan returns the unit to available stock', fu
 
     // The kept unit is still consumed by the sale.
     expect(GudangBarang::find($keep->id))->toBeNull();
+});
+
+test('serial number options include older stock units beyond fifty rows', function () {
+    $oldest = null;
+
+    for ($i = 0; $i < 60; $i++) {
+        $unit = GudangBarang::create([
+            'barang_id' => $this->barang->id,
+            'serial_number_id' => 'SN-'.$i,
+            'toko_id' => $this->toko->id,
+            'status' => 1,
+        ]);
+
+        $oldest ??= $unit;
+    }
+
+    $options = LineItems::unitOptions($this->barang->id, $this->toko->id);
+
+    expect($options)->toHaveCount(60)
+        ->and($options)->toHaveKey($oldest->id);
 });
 
 test('deleting a penjualan returns its stock units to available stock', function () {

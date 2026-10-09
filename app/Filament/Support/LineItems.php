@@ -108,7 +108,6 @@ class LineItems
             ->where('toko_id', $tokoId)
             ->where('status', 1)
             ->orderByDesc('id')
-            ->limit(50)
             ->get()
             ->mapWithKeys(fn (GudangBarang $unit): array => [$unit->id => self::unitSerialLabel($unit)])
             ->all();
