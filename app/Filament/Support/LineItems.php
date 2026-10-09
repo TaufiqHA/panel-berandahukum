@@ -87,6 +87,14 @@ class LineItems
     }
 
     /**
+     * Human readable serial number only, e.g. "SN-001".
+     */
+    public static function unitSerialLabel(GudangBarang $unit): string
+    {
+        return $unit->serial_number_id ?: 'tanpa SN';
+    }
+
+    /**
      * @return array<int, string>
      */
     public static function unitOptions(?int $barangId, ?int $tokoId): array
@@ -96,14 +104,13 @@ class LineItems
         }
 
         return GudangBarang::query()
-            ->with('barang')
             ->where('barang_id', $barangId)
             ->where('toko_id', $tokoId)
             ->where('status', 1)
             ->orderByDesc('id')
             ->limit(50)
             ->get()
-            ->mapWithKeys(fn (GudangBarang $unit): array => [$unit->id => self::unitLabel($unit)])
+            ->mapWithKeys(fn (GudangBarang $unit): array => [$unit->id => self::unitSerialLabel($unit)])
             ->all();
     }
 
@@ -189,6 +196,7 @@ class LineItems
                 ->wrapOptionLabels(false)->searchable()
                 ->live()
                 ->getOptionLabelUsing(fn ($value): ?string => Barang::withTrashed()->find($value)?->nama_product)
+                ->columnSpan($withPrice ? 3 : 1)
                 ->required(),
             Placeholder::make('stock')
                 ->label('Stock')
@@ -206,13 +214,13 @@ class LineItems
             $schema[] = Select::make('serial_numbers')
                 ->label('Pilih Serial Number')
                 ->multiple()
+                ->columnSpan(2)
                 ->options(fn ($get): array => self::unitOptions($get('barang_id'), $get('../../toko_id')))
                 ->wrapOptionLabels(false)->searchable()
                 ->getOptionLabelsUsing(fn (array $values): array => GudangBarang::withTrashed()
-                    ->with('barang')
                     ->whereIn('id', $values)
                     ->get()
-                    ->mapWithKeys(fn (GudangBarang $unit): array => [(string) $unit->id => self::unitLabel($unit)])
+                    ->mapWithKeys(fn (GudangBarang $unit): array => [(string) $unit->id => self::unitSerialLabel($unit)])
                     ->all());
 
             $schema[] = TextInput::make('price')
@@ -240,10 +248,9 @@ class LineItems
                 ->options(fn ($get): array => self::unitOptions($get('barang_id'), $get('../../toko_id')))
                 ->wrapOptionLabels(false)->searchable()
                 ->getOptionLabelsUsing(fn (array $values): array => GudangBarang::withTrashed()
-                    ->with('barang')
                     ->whereIn('id', $values)
                     ->get()
-                    ->mapWithKeys(fn (GudangBarang $unit): array => [(string) $unit->id => self::unitLabel($unit)])
+                    ->mapWithKeys(fn (GudangBarang $unit): array => [(string) $unit->id => self::unitSerialLabel($unit)])
                     ->all());
         }
 
@@ -251,7 +258,7 @@ class LineItems
             ->hiddenLabel()
             ->addActionLabel('Barang')
             ->schema($schema)
-            ->columns($withPrice ? 7 : 4)
+            ->columns($withPrice ? 10 : 4)
             ->columnSpanFull();
     }
 }
