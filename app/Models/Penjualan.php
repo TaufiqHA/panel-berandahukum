@@ -70,25 +70,94 @@ class Penjualan extends Model
     /**
      * Return every stock unit consumed by this sale back to available stock.
      *
-     * Only the active sale lines are considered; lines that were already
-     * removed from the sale were returned to stock when they were detached.
+     * Active sale lines are always returned. Lines that were removed from the
+     * sale earlier should already have returned their unit, but detached
+     * legacy/imported lines may have left the unit soft deleted; those are
+     * recovered too so the serial becomes selectable again.
      */
     public function restoreSoldUnits(): void
     {
+        $restoredIds = [];
+
         foreach ($this->detail_penjualan()->get() as $detail) {
-            $unit = GudangBarang::withTrashed()->find($detail->gudang_barang_id);
+            $unit = $this->resolveDetailUnit($detail, $restoredIds);
 
             if ($unit === null) {
                 continue;
             }
 
-            // Returning a unit to stock must also clear the legacy "sold"
-            // status so it shows up again as an available serial number.
-            $unit->restore();
-            $unit->forceFill(['status' => 1])->save();
+            $this->returnUnitToStock($unit);
+            $restoredIds[] = $unit->id;
         }
 
         $this->detail_penjualan()->delete();
+
+        foreach ($this->detail_penjualan()->onlyTrashed()->get() as $detail) {
+            $unit = $this->resolveDetailUnit($detail, $restoredIds);
+
+            if ($unit === null || $unit->deleted_at === null) {
+                continue;
+            }
+
+            // Only units this sale consumed and that are not attached to
+            // another active sale are safe to return to stock.
+            if (! $unit->deleted_at->equalTo($this->created_at)) {
+                continue;
+            }
+
+            if ($unit->detail_penjualan()->exists()) {
+                continue;
+            }
+
+            $this->returnUnitToStock($unit);
+            $restoredIds[] = $unit->id;
+        }
+    }
+
+    /**
+     * Returning a unit to stock must also clear the legacy "sold" status so it
+     * shows up again as an available serial number.
+     */
+    private function returnUnitToStock(GudangBarang $unit): void
+    {
+        $unit->restore();
+        $unit->forceFill(['status' => 1])->save();
+    }
+
+    /**
+     * Resolve the stock unit consumed by a sale line.
+     *
+     * Imported sales sometimes stored the stock unit id in the serial number
+     * column or replaced it with 0, leaving the unit detached from its sale.
+     * The unit is recovered from the moment the sale was created, matching the
+     * rule used by {@see GudangBarang::resolvePenjualan()}.
+     *
+     * @param  array<int, int>  $excluded  Units already claimed by earlier lines.
+     */
+    public function resolveDetailUnit(DetailPenjualan $detail, array $excluded = []): ?GudangBarang
+    {
+        if (! empty($detail->gudang_barang_id)) {
+            return GudangBarang::withTrashed()->find($detail->gudang_barang_id);
+        }
+
+        // Legacy rows may store the stock unit id in the serial number column.
+        if (! empty($detail->serial_number_id)) {
+            $unit = GudangBarang::withTrashed()->find($detail->serial_number_id);
+
+            if ($unit !== null && (int) $unit->barang_id === (int) $detail->barang_id) {
+                return $unit;
+            }
+        }
+
+        $query = GudangBarang::withTrashed()
+            ->where('barang_id', $detail->barang_id)
+            ->where('deleted_at', $this->created_at);
+
+        if ($excluded !== []) {
+            $query->whereNotIn('id', $excluded);
+        }
+
+        return $query->first();
     }
 
     public function detail_penjualan_group()

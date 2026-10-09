@@ -6,7 +6,6 @@ use App\Filament\Resources\Penjualans\PenjualanResource;
 use App\Filament\Support\LineItems;
 use App\Filament\Support\TransactionData;
 use App\Models\DetailPenjualan;
-use App\Models\GudangBarang;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -30,15 +29,21 @@ class EditPenjualan extends EditRecord
     {
         $data['use_ppn'] = (float) ($data['ppn'] ?? 0) > 0;
 
+        $resolved = [];
+
         $data['items'] = DetailPenjualan::where('penjualan_id', $this->record->id)
             ->get()
-            ->map(function (DetailPenjualan $detail): array {
-                $unit = GudangBarang::withTrashed()->with('barang')->find($detail->gudang_barang_id);
+            ->map(function (DetailPenjualan $detail) use (&$resolved): array {
+                $unit = $this->record->resolveDetailUnit($detail, $resolved);
+
+                if ($unit !== null) {
+                    $resolved[] = $unit->id;
+                }
 
                 return [
                     'barang_id' => $detail->barang_id,
                     'jumlah' => 1,
-                    'serial_numbers' => $detail->gudang_barang_id ? [$detail->gudang_barang_id] : [],
+                    'serial_numbers' => $unit ? [$unit->id] : [],
                     'price' => $detail->price,
                     'discount' => $detail->discount,
                 ];

@@ -142,6 +142,96 @@ test('removing an item from a penjualan returns the unit to available stock', fu
     expect(GudangBarang::find($keep->id))->toBeNull();
 });
 
+test('removing an imported sale line returns its detached unit to available stock', function () {
+    $unit = GudangBarang::create([
+        'barang_id' => $this->barang->id,
+        'serial_number_id' => 'SN-ORPHAN',
+        'toko_id' => $this->toko->id,
+        'status' => 1,
+    ]);
+
+    $penjualan = Penjualan::create([
+        'date' => now()->toDateString(),
+        'kode_penjualan' => 'PJ-ORPHAN',
+        'nama_pembeli' => 'Pembeli Orphan',
+        'toko_id' => $this->toko->id,
+        'subtotal' => 1000000,
+        'status' => 1,
+        'ppn' => 0,
+        'show_infopembayaran' => 0,
+    ]);
+
+    // Imported sales detached the unit by storing 0 in gudang_barang_id, and the
+    // unit was soft deleted at the exact moment the sale was created.
+    $unit->forceFill(['deleted_at' => $penjualan->created_at])->save();
+
+    DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => $this->barang->id,
+        'gudang_barang_id' => 0,
+        'serial_number_id' => null,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+
+    expect(LineItems::unitOptions($this->barang->id, $this->toko->id))
+        ->not->toHaveKey($unit->id);
+
+    Livewire::test(EditPenjualan::class, ['record' => $penjualan->getRouteKey()])
+        ->fillForm(['items' => []])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $restored = GudangBarang::withTrashed()->find($unit->id);
+
+    expect($restored->deleted_at)->toBeNull()
+        ->and((int) $restored->status)->toBe(1)
+        ->and($restored->resolvePenjualan())->toBeNull();
+
+    expect(LineItems::unitOptions($this->barang->id, $this->toko->id))
+        ->toHaveKey($unit->id);
+});
+
+test('editing an imported sale recovers a detached unit removed earlier', function () {
+    $unit = GudangBarang::create([
+        'barang_id' => $this->barang->id,
+        'serial_number_id' => 'SN-STUCK',
+        'toko_id' => $this->toko->id,
+        'status' => 1,
+    ]);
+
+    $penjualan = Penjualan::create([
+        'date' => now()->toDateString(),
+        'kode_penjualan' => 'PJ-STUCK',
+        'nama_pembeli' => 'Pembeli Stuck',
+        'toko_id' => $this->toko->id,
+        'subtotal' => 1000000,
+        'status' => 1,
+        'ppn' => 0,
+        'show_infopembayaran' => 0,
+    ]);
+
+    $unit->forceFill(['deleted_at' => $penjualan->created_at])->save();
+
+    // The line was removed earlier but the detached unit was never returned.
+    $detail = DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => $this->barang->id,
+        'gudang_barang_id' => 0,
+        'serial_number_id' => null,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+    $detail->delete();
+
+    $penjualan->restoreSoldUnits();
+
+    $restored = GudangBarang::withTrashed()->find($unit->id);
+
+    expect($restored->deleted_at)->toBeNull()
+        ->and((int) $restored->status)->toBe(1);
+});
+
 test('serial number options include older stock units beyond fifty rows', function () {
     $oldest = null;
 

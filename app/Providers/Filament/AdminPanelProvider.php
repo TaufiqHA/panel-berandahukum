@@ -79,6 +79,11 @@ class AdminPanelProvider extends PanelProvider
                         .fi-ta-filters-above-content-ctn .fi-ta-filters-actions {
                             flex: 0 0 auto;
                         }
+                        .fi-header-subheading {
+                            margin-top: 0.5rem;
+                            font-size: 0.875rem;
+                            line-height: 1.25rem;
+                        }
                     </style>
                     HTML),
             )
