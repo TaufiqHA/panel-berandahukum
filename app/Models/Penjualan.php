@@ -10,6 +10,16 @@ class Penjualan extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Deleting a sale always returns the stock units it consumed.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Penjualan $penjualan): void {
+            $penjualan->restoreSoldUnits();
+        });
+    }
+
     protected $fillable = [
         'date',
         'kode_penjualan',
@@ -55,6 +65,30 @@ class Penjualan extends Model
     public function detail_penjualan()
     {
         return $this->hasMany(DetailPenjualan::class);
+    }
+
+    /**
+     * Return every stock unit consumed by this sale back to available stock.
+     *
+     * Only the active sale lines are considered; lines that were already
+     * removed from the sale were returned to stock when they were detached.
+     */
+    public function restoreSoldUnits(): void
+    {
+        foreach ($this->detail_penjualan()->get() as $detail) {
+            $unit = GudangBarang::withTrashed()->find($detail->gudang_barang_id);
+
+            if ($unit === null) {
+                continue;
+            }
+
+            // Returning a unit to stock must also clear the legacy "sold"
+            // status so it shows up again as an available serial number.
+            $unit->restore();
+            $unit->forceFill(['status' => 1])->save();
+        }
+
+        $this->detail_penjualan()->delete();
     }
 
     public function detail_penjualan_group()

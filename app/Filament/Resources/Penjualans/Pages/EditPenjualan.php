@@ -22,8 +22,7 @@ class EditPenjualan extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make()
-                ->after(fn () => self::restoreUnits($this->record->id)),
+            DeleteAction::make(),
         ];
     }
 
@@ -81,16 +80,7 @@ class EditPenjualan extends EditRecord
             return;
         }
 
-        self::restoreUnits($this->record->id);
+        $this->record->restoreSoldUnits();
         CreatePenjualan::saveItems($this->record->id, (int) $this->record->toko_id, $this->items);
-    }
-
-    public static function restoreUnits(int $penjualanId): void
-    {
-        foreach (DetailPenjualan::where('penjualan_id', $penjualanId)->get() as $detail) {
-            GudangBarang::withTrashed()->where('id', $detail->gudang_barang_id)->restore();
-        }
-
-        DetailPenjualan::where('penjualan_id', $penjualanId)->delete();
     }
 }

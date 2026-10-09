@@ -14,6 +14,7 @@ use App\Models\Kategori;
 use App\Models\Penjualan;
 use App\Models\Po;
 use App\Models\PoDetail;
+use App\Models\Signature;
 use App\Models\Toko;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -82,6 +83,92 @@ test('creating a penjualan consumes stock units', function () {
     expect(DetailPenjualan::count())->toBe(1);
     expect(GudangBarang::find($unit->id))->toBeNull();
     expect(GudangBarang::withTrashed()->find($unit->id))->not->toBeNull();
+});
+
+test('removing an item from a penjualan returns the unit to available stock', function () {
+    Signature::create(['name' => 'Sales Test', 'signature' => 'TTD']);
+
+    $keep = GudangBarang::create([
+        'barang_id' => $this->barang->id,
+        'serial_number_id' => 'SN-KEEP',
+        'toko_id' => $this->toko->id,
+        'status' => 1,
+    ]);
+
+    $remove = GudangBarang::create([
+        'barang_id' => $this->barang->id,
+        'serial_number_id' => 'SN-REMOVE',
+        'toko_id' => $this->toko->id,
+        'status' => 1,
+    ]);
+
+    Livewire::test(CreatePenjualan::class)
+        ->fillForm([
+            'date' => now()->toDateString(),
+            'kode_penjualan' => 'PJ-REMOVE',
+            'nama_pembeli' => 'Pembeli Remove',
+            'nama_sales' => 'Sales Test',
+            'toko_id' => $this->toko->id,
+            'items' => [
+                ['barang_id' => $this->barang->id, 'jumlah' => 1, 'serial_numbers' => [$keep->id], 'price' => 1000000, 'discount' => 0],
+                ['barang_id' => $this->barang->id, 'jumlah' => 1, 'serial_numbers' => [$remove->id], 'price' => 1000000, 'discount' => 0],
+            ],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $penjualan = Penjualan::first();
+
+    // Simulate a legacy sold unit that is not soft deleted.
+    GudangBarang::withTrashed()->whereKey($remove->id)->update(['status' => 2, 'deleted_at' => null]);
+
+    Livewire::test(EditPenjualan::class, ['record' => $penjualan->getRouteKey()])
+        ->fillForm([
+            'items' => [
+                ['barang_id' => $this->barang->id, 'jumlah' => 1, 'serial_numbers' => [$keep->id], 'price' => 1000000, 'discount' => 0],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $removedUnit = GudangBarang::withTrashed()->find($remove->id);
+
+    expect($removedUnit->deleted_at)->toBeNull()
+        ->and((int) $removedUnit->status)->toBe(1)
+        ->and($removedUnit->resolvePenjualan())->toBeNull();
+
+    // The kept unit is still consumed by the sale.
+    expect(GudangBarang::find($keep->id))->toBeNull();
+});
+
+test('deleting a penjualan returns its stock units to available stock', function () {
+    $unit = GudangBarang::create([
+        'barang_id' => $this->barang->id,
+        'serial_number_id' => 'SN-DELETE',
+        'toko_id' => $this->toko->id,
+        'status' => 1,
+    ]);
+
+    Livewire::test(CreatePenjualan::class)
+        ->fillForm([
+            'date' => now()->toDateString(),
+            'kode_penjualan' => 'PJ-DELETE',
+            'nama_pembeli' => 'Pembeli Delete',
+            'toko_id' => $this->toko->id,
+            'items' => [
+                ['barang_id' => $this->barang->id, 'jumlah' => 1, 'serial_numbers' => [$unit->id], 'price' => 1000000, 'discount' => 0],
+            ],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Penjualan::first()->delete();
+
+    $restored = GudangBarang::withTrashed()->find($unit->id);
+
+    expect($restored->deleted_at)->toBeNull()
+        ->and((int) $restored->status)->toBe(1)
+        ->and(DetailPenjualan::withTrashed()->where('gudang_barang_id', $unit->id)->whereNull('deleted_at')->count())->toBe(0);
 });
 
 test('creating a barang keluar consumes stock units', function () {

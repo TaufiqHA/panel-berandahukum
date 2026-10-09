@@ -165,6 +165,21 @@ test('search page filters sold and stock units separately', function () {
         ->assertCanNotSeeTableRecords([$stock]);
 });
 
+test('a unit returned to stock is not marked as sold despite a stale sale detail', function () {
+    ['unit' => $unit, 'penjualan' => $penjualan] = createSoldSearchUnit();
+
+    // Removing an item from a sale restores the stock unit and soft deletes the
+    // sale detail it came from.
+    $unit->restore();
+    DetailPenjualan::where('penjualan_id', $penjualan->id)->delete();
+
+    Livewire::test(SearchBarang::class)
+        ->assertTableColumnFormattedStateSet('status', 'Stock', record: $unit)
+        ->assertTableColumnStateSet('detail_penjualan.penjualan.kode_penjualan', null, record: $unit)
+        ->filterTable('status', 'terjual')
+        ->assertCanNotSeeTableRecords([$unit]);
+});
+
 test('a deleted unit without a sale is not marked as sold', function () {
     ['unit' => $sold] = createSoldSearchUnit();
 

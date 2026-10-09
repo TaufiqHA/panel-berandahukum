@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Penjualans\Tables;
 
-use App\Filament\Resources\Penjualans\Pages\EditPenjualan;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -103,8 +102,7 @@ class PenjualansTable
                     ->openUrlInNewTab()
                     ->url(fn ($record): string => route('print.penjualan.surat-jalan', $record)),
                 EditAction::make(),
-                DeleteAction::make()
-                    ->after(fn ($record) => EditPenjualan::restoreUnits($record->id)),
+                DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

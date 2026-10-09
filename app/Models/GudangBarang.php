@@ -39,11 +39,17 @@ class GudangBarang extends Model
 
     public function detail_penjualan()
     {
-        return $this->hasOne(DetailPenjualan::class)->withTrashed();
+        return $this->hasOne(DetailPenjualan::class);
     }
 
     /**
-     * Resolve the sale a unit was sold through, including trashed sale details.
+     * Resolve the sale a unit was sold through, including historical details.
+     *
+     * A sale detail that is still active means the unit is genuinely part of a
+     * sale. A unit that is back in stock is never sold, even when a stale
+     * (soft-deleted) sale detail remains from a sale it was removed from. Only
+     * for soft-deleted units do we fall back to a soft-deleted detail so the
+     * buyer information is still available.
      *
      * Imported sales sometimes stored `detail_penjualans.gudang_barang_id` as 0,
      * leaving the unit detached from its sale. The unit is soft deleted at the
@@ -60,8 +66,22 @@ class GudangBarang extends Model
 
         $penjualan = $this->detail_penjualan?->penjualan;
 
-        if ($penjualan !== null || $this->deleted_at === null) {
+        if ($penjualan !== null) {
             return $this->resolvedPenjualan = $penjualan;
+        }
+
+        if ($this->deleted_at === null) {
+            return $this->resolvedPenjualan = null;
+        }
+
+        $historical = DetailPenjualan::withTrashed()
+            ->where('gudang_barang_id', $this->id)
+            ->whereHas('penjualan')
+            ->latest('id')
+            ->first();
+
+        if ($historical !== null) {
+            return $this->resolvedPenjualan = $historical->penjualan;
         }
 
         return $this->resolvedPenjualan = Penjualan::query()
