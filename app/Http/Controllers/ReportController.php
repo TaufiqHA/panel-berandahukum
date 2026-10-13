@@ -486,14 +486,24 @@ class ReportController extends Controller
      */
     public function po(array $filters): array
     {
-        [$from, $to] = $this->range($filters);
         $user = Auth::user();
 
         $query = Po::with(['toko', 'supplier'])
-            ->where('status', 1)
-            ->whereBetween('date', [$from, $to]);
+            ->where('status', 1);
 
-        if (! empty($filters['jatuh_tempo_awal']) && ! empty($filters['jatuh_tempo_akhir'])) {
+        $hasDateFilter = ! empty($filters['tanggalAwal']) || ! empty($filters['tanggalAkhir']);
+        $hasJatuhTempoFilter = ! empty($filters['jatuh_tempo_awal']) && ! empty($filters['jatuh_tempo_akhir']);
+
+        // The default current-month range only makes sense when the user is not
+        // filtering by a different date (jatuh tempo). Applying it together with
+        // a jatuh tempo filter silently drops POs whose tanggal is outside the
+        // current month even though they are due within the filtered range.
+        if ($hasDateFilter || ! $hasJatuhTempoFilter) {
+            [$from, $to] = $this->range($filters);
+            $query->whereBetween('date', [$from, $to]);
+        }
+
+        if ($hasJatuhTempoFilter) {
             $query->whereBetween('jatuh_tempo', [
                 date('Y-m-d', strtotime($filters['jatuh_tempo_awal'])),
                 date('Y-m-d', strtotime($filters['jatuh_tempo_akhir'])),
