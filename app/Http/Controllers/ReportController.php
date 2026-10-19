@@ -328,9 +328,14 @@ class ReportController extends Controller
 
         $rows = [];
         $no = 1;
+        $totalHargaBeli = 0.0;
+        $totalPriceList = 0.0;
 
         foreach ($query->get() as $unit) {
             $stockIn = $unit->detail_barang_masuk?->stock_in;
+
+            $totalHargaBeli += (float) ($stockIn?->harga_beli ?? 0);
+            $totalPriceList += (float) ($stockIn?->price_list ?? 0);
 
             $rows[] = [
                 $no++,
@@ -345,6 +350,8 @@ class ReportController extends Controller
                 $stockIn?->supplier ?? '',
             ];
         }
+
+        $rows[] = ['', 'TOTAL', '', '', '', '', '', $this->rupiah($totalHargaBeli), $this->rupiah($totalPriceList), ''];
 
         return [
             'headings' => ['No', 'Tanggal Masuk', 'Nama Barang', 'Serial Number', 'Jumlah', 'Warna', 'Nama Toko', 'Harga Beli', 'Price List', 'Supplier'],
