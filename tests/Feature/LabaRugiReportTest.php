@@ -126,7 +126,48 @@ test('laporan laba rugi berdasarkan barang menampilkan serial number dari unit s
     expect($report['rows'][0][4])->toBe('23120626');
 });
 
-test('laporan laba rugi hanya memasukkan penjualan yang sudah lunas', function () {
+test('laporan laba rugi mengambil nama barang dari unit stok saat barang_id detail kosong', function () {
+    $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
+    $kategori = Kategori::create(['nama_kategori' => 'Audio']);
+    $barang = Barang::create([
+        'kategori_id' => $kategori->id,
+        'nama_product' => 'Mic Wireless Handheld',
+    ]);
+
+    $penjualan = Penjualan::create([
+        'date' => now()->toDateString(),
+        'kode_penjualan' => 'PJ-LEGACY',
+        'nama_pembeli' => 'Pembeli A',
+        'toko_id' => $toko->id,
+        'subtotal' => 1000000,
+        'status' => 1,
+        'ppn' => 0,
+        'show_infopembayaran' => 0,
+        'payment_status' => 'Lunas',
+        'sisa' => 0,
+    ]);
+
+    $unit = GudangBarang::create([
+        'barang_id' => $barang->id,
+        'serial_number_id' => '23120611',
+        'toko_id' => $toko->id,
+        'status' => 1,
+    ]);
+
+    DetailPenjualan::create([
+        'penjualan_id' => $penjualan->id,
+        'barang_id' => 0,
+        'gudang_barang_id' => $unit->id,
+        'price' => 1000000,
+        'discount' => 0,
+    ]);
+
+    $report = app(ReportController::class)->labaRugi(['jenis_report' => '1']);
+
+    expect($report['rows'][0][3])->toBe('Mic Wireless Handheld');
+});
+
+test('laporan laba rugi menampilkan semua penjualan apa pun status pembayarannya', function () {
     $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
     $kategori = Kategori::create(['nama_kategori' => 'Audio']);
     $barang = Barang::create([
@@ -161,15 +202,62 @@ test('laporan laba rugi hanya memasukkan penjualan yang sudah lunas', function (
     $makePenjualan('PJ-DP', 'DP', 500000);
     $makePenjualan('PJ-TEMPO', 'Tempo', 1000000);
 
+    $semuaKode = ['PJ-LUNAS', 'PJ-CBD', 'PJ-DP', 'PJ-TEMPO'];
+    $controller = app(ReportController::class);
+
     // Berdasarkan Penjualan: satu baris per transaksi (tanpa baris TOTAL).
-    $perPenjualan = app(ReportController::class)->labaRugi(['jenis_report' => '2']);
+    $perPenjualan = $controller->labaRugi(['jenis_report' => '2']);
     $kodePenjualan = array_column(array_slice($perPenjualan['rows'], 0, -1), 2);
-    expect($kodePenjualan)->toEqualCanonicalizing(['PJ-LUNAS', 'PJ-CBD']);
+    expect($kodePenjualan)->toEqualCanonicalizing($semuaKode);
 
     // Berdasarkan Barang: satu baris per detail barang.
-    $perBarang = app(ReportController::class)->labaRugi(['jenis_report' => '1']);
+    $perBarang = $controller->labaRugi(['jenis_report' => '1']);
     $kodeBarang = array_column(array_slice($perBarang['rows'], 0, -1), 2);
-    expect($kodeBarang)->toEqualCanonicalizing(['PJ-LUNAS', 'PJ-CBD']);
+    expect($kodeBarang)->toEqualCanonicalizing($semuaKode);
+});
+
+test('laporan laba rugi dapat difilter berdasarkan status bayar', function () {
+    $toko = Toko::create(['nama_toko' => 'Toko Pusat']);
+    $kategori = Kategori::create(['nama_kategori' => 'Audio']);
+    $barang = Barang::create([
+        'kategori_id' => $kategori->id,
+        'nama_product' => 'Speaker',
+    ]);
+
+    $makePenjualan = function (string $kode, string $status, float $sisa) use ($toko, $barang): void {
+        $penjualan = Penjualan::create([
+            'date' => now()->toDateString(),
+            'kode_penjualan' => $kode,
+            'nama_pembeli' => 'Pembeli',
+            'toko_id' => $toko->id,
+            'subtotal' => 1000000,
+            'status' => 1,
+            'ppn' => 0,
+            'show_infopembayaran' => 0,
+            'payment_status' => $status,
+            'sisa' => $sisa,
+        ]);
+
+        DetailPenjualan::create([
+            'penjualan_id' => $penjualan->id,
+            'barang_id' => $barang->id,
+            'price' => 1000000,
+            'discount' => 0,
+        ]);
+    };
+
+    $makePenjualan('PJ-LUNAS', 'Lunas', 0);
+    $makePenjualan('PJ-DP', 'DP', 500000);
+
+    $controller = app(ReportController::class);
+
+    $kodeUntuk = fn (string $status): array => array_column(
+        array_slice($controller->labaRugi(['jenis_report' => '1', 'status_bayar' => $status])['rows'], 0, -1),
+        2,
+    );
+
+    expect($kodeUntuk('Lunas'))->toBe(['PJ-LUNAS'])
+        ->and($kodeUntuk('DP'))->toBe(['PJ-DP']);
 });
 
 test('laporan laba rugi berdasarkan barang hanya menampilkan barang yang dipilih', function () {

@@ -373,12 +373,17 @@ class ReportController extends Controller
             'toko',
             'detail_penjualan.serial_number',
             'detail_penjualan.gudang_barang.serial_number',
+            'detail_penjualan.gudang_barang.barang',
             'detail_penjualan.gudang_barang.detail_barang_masuk.stock_in',
             'detail_penjualan.barang',
         ])->whereBetween('date', [$from, $to]);
 
         if (! empty($filters['nama_toko'])) {
             $query->whereIn('toko_id', (array) $filters['nama_toko']);
+        }
+
+        if (! empty($filters['status_bayar'])) {
+            $query->where('payment_status', $filters['status_bayar']);
         }
 
         if ($barangIds !== []) {
@@ -396,14 +401,6 @@ class ReportController extends Controller
                     ->groupBy('penjualan_id');
             });
         }
-
-        // Hanya penjualan yang sudah lunas (tidak ada sisa pembayaran) dan bukan
-        // DP yang dihitung sebagai laba/rugi.
-        $query
-            ->where('payment_status', '!=', 'DP')
-            ->where(function (Builder $query): void {
-                $query->whereNull('sisa')->orWhere('sisa', '<=', 0);
-            });
 
         $rows = [];
         $no = 1;
@@ -472,7 +469,7 @@ class ReportController extends Controller
                     $no++,
                     $penjualan->date ? date('d F Y', strtotime($penjualan->date)) : '',
                     $penjualan->kode_penjualan,
-                    $detail->barang?->nama_product,
+                    $detail->gudang_barang?->barang?->nama_product ?? $detail->barang?->nama_product,
                     $serial,
                     $penjualan->toko?->nama_toko,
                     $this->rupiah($hargaBeli),
