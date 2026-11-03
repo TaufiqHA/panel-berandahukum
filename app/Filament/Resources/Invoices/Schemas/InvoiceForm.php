@@ -31,7 +31,7 @@ class InvoiceForm
                             ->required(),
                         TextInput::make('kode_invoice')
                             ->label('Ref Number')
-                            ->default(fn (): string => 'INV - '.str_pad((string) ((int) Invoice::max('id') + 1), 7, '0', STR_PAD_LEFT))
+                            ->default(fn (): string => Invoice::nextKodeInvoice())
                             ->columnSpan(3)
                             ->required(),
                         Select::make('toko_id')

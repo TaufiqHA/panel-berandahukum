@@ -2,6 +2,12 @@
 
 namespace App\Filament\Resources\Quotations\Tables;
 
+use App\Filament\Resources\Invoices\InvoiceResource;
+use App\Filament\Resources\Invoices\Pages\EditInvoice;
+use App\Filament\Resources\Quotations\Pages\EditQuotation;
+use App\Filament\Resources\Quotations\QuotationResource;
+use App\Models\Invoice;
+use App\Models\Quotation;
 use App\Models\QuotationDetail;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -9,12 +15,14 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component;
 
 class QuotationsTable
 {
@@ -88,6 +96,59 @@ class QuotationsTable
                     ->color('gray')
                     ->openUrlInNewTab()
                     ->url(fn ($record): string => route('print.quotation', $record)),
+                Action::make('duplicate')
+                    ->label('Duplicate')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalHeading('Duplicate Quotation')
+                    ->modalDescription('Salin quotation ini beserta seluruh detail barangnya?')
+                    ->modalSubmitActionLabel('Duplicate')
+                    ->visible(fn (): bool => QuotationResource::canCreate())
+                    ->action(function (Quotation $record, Component $livewire): void {
+                        $duplicate = QuotationResource::duplicate($record);
+
+                        Notification::make()
+                            ->title('Quotation berhasil diduplikasi')
+                            ->success()
+                            ->send();
+
+                        $livewire->redirect(EditQuotation::getUrl(['record' => $duplicate]), navigate: true);
+                    }),
+                Action::make('invoice')
+                    ->label('Buat Invoice')
+                    ->icon('heroicon-o-receipt-percent')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Buat Invoice dari Quotation')
+                    ->modalDescription('Invoice akan dibuat dari quotation ini beserta seluruh detail barangnya.')
+                    ->modalSubmitActionLabel('Buat Invoice')
+                    ->visible(fn (Quotation $record): bool => $record->toko_id !== null
+                        && InvoiceResource::canAccess()
+                        && InvoiceResource::canCreate())
+                    ->action(function (Quotation $record, Component $livewire): void {
+                        $existingInvoice = Invoice::query()->where('quotation_id', $record->id)->first();
+
+                        if ($existingInvoice) {
+                            Notification::make()
+                                ->title('Quotation sudah dibuatkan invoice')
+                                ->warning()
+                                ->send();
+
+                            $livewire->redirect(EditInvoice::getUrl(['record' => $existingInvoice]), navigate: true);
+
+                            return;
+                        }
+
+                        $invoice = QuotationResource::convertToInvoice($record);
+
+                        Notification::make()
+                            ->title('Invoice berhasil dibuat')
+                            ->success()
+                            ->send();
+
+                        $livewire->redirect(EditInvoice::getUrl(['record' => $invoice]), navigate: true);
+                    }),
                 EditAction::make(),
                 DeleteAction::make()
                     ->after(fn ($record) => QuotationDetail::where('quotation_id', $record->id)->delete()),

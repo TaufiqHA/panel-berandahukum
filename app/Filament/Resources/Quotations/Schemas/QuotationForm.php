@@ -31,7 +31,7 @@ class QuotationForm
                             ->required(),
                         TextInput::make('kode_quotation')
                             ->label('Ref Number')
-                            ->default(fn (): string => 'QT - '.str_pad((string) ((int) Quotation::max('id') + 1), 7, '0', STR_PAD_LEFT))
+                            ->default(fn (): string => Quotation::nextKodeQuotation())
                             ->columnSpan(3)
                             ->required(),
                         Select::make('toko_id')

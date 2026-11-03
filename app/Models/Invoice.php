@@ -11,6 +11,7 @@ class Invoice extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'quotation_id',
         'date',
         'kode_invoice',
         'nama_pembeli',
@@ -36,6 +37,16 @@ class Invoice extends Model
         'show_project',
         'nama_project',
     ];
+
+    public static function nextKodeInvoice(): string
+    {
+        return 'INV - '.str_pad((string) ((int) static::withTrashed()->max('id') + 1), 7, '0', STR_PAD_LEFT);
+    }
+
+    public function quotation()
+    {
+        return $this->belongsTo(Quotation::class);
+    }
 
     public function toko()
     {

@@ -29,6 +29,16 @@ class Quotation extends Model
         'nama_project',
     ];
 
+    public static function nextKodeQuotation(): string
+    {
+        return 'QT - '.str_pad((string) ((int) static::withTrashed()->max('id') + 1), 7, '0', STR_PAD_LEFT);
+    }
+
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
     public function toko()
     {
         return $this->belongsTo(Toko::class);
