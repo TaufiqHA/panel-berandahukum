@@ -9,6 +9,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Support\RawJs;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 
@@ -34,11 +35,19 @@ class LineItems
      */
     public static function toNumber(mixed $value): float
     {
-        if (is_numeric($value)) {
+        if (is_int($value) || is_float($value)) {
             return (float) $value;
         }
 
-        return (float) preg_replace('/[^0-9-]/', '', (string) $value);
+        $value = trim((string) $value);
+
+        // "2.000" is a numeric string in PHP, but here the dot is a thousands
+        // separator rather than a decimal point.
+        if (is_numeric($value) && ! preg_match('/^-?\d{1,3}(\.\d{3})+$/', $value)) {
+            return (float) $value;
+        }
+
+        return (float) preg_replace('/[^0-9-]/', '', $value);
     }
 
     /**
@@ -158,6 +167,8 @@ class LineItems
         $schema[] = TextInput::make('price')
             ->label('Harga')
             ->money()
+            ->mask(RawJs::make("\$money(\$input, ',', '.', 0)"))
+            ->stripCharacters('.')
             ->live()
             ->required();
 

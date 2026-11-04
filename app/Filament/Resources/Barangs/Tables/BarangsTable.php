@@ -23,21 +23,26 @@ class BarangsTable
                 TextColumn::make('id')->limit(30)
                     ->label('Id')
                     ->sortable(),
-                TextColumn::make('nama_product')->limit(30)
+                TextColumn::make('nama_product')
                     ->label('Nama Barang')
+                    ->wrap()
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('merk')->limit(30)
                     ->label('Merk')
+                    ->width('70px')
                     ->searchable(),
                 TextColumn::make('satuan')->limit(30)
-                    ->label('Satuan'),
+                    ->label('Satuan')
+                    ->width('70px'),
                 TextColumn::make('warna')->limit(30)
-                    ->label('Warna'),
+                    ->label('Warna')
+                    ->width('70px'),
                 TextColumn::make('berat')->limit(30)
                     ->label('Berat'),
                 TextColumn::make('ukuran')->limit(30)
-                    ->label('Ukuran'),
+                    ->label('Ukuran')
+                    ->width('70px'),
                 TextColumn::make('harga')->limit(30)
                     ->label('Price List')
                     ->money('IDR', divideBy: 1, decimalPlaces: 0)

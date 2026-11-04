@@ -2,6 +2,7 @@
 
 use App\Filament\Resources\Barangs\Pages\EditBarang;
 use App\Filament\Resources\StockIns\Pages\ListStockIns;
+use App\Filament\Support\LineItems;
 use App\Models\Barang;
 use App\Models\Kategori;
 use App\Models\StockIn;
@@ -42,6 +43,12 @@ test('harga yang diisi dengan titik ribuan tersimpan sebagai angka', function ()
         ->assertHasNoFormErrors();
 
     expect((float) $barang->refresh()->harga)->toBe(8807850.0);
+});
+
+test('harga dengan titik ribuan dihitung sebagai ribuan, bukan desimal', function () {
+    expect(LineItems::toNumber('2.000'))->toBe(2000.0)
+        ->and(LineItems::toNumber('2.000.000'))->toBe(2000000.0)
+        ->and(LineItems::lineSubtotal(['price' => '2.000', 'jumlah' => 2, 'discount' => 0]))->toBe(4000.0);
 });
 
 test('tabel barang masuk menampilkan harga beli dan price list dengan titik ribuan', function () {
