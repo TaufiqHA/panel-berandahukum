@@ -75,7 +75,7 @@ class QuotationForm
                 ])->columns(1),
 
                 Section::make('Detail Barang')->schema([
-                    LineItems::barangRepeater(withStock: false),
+                    LineItems::barangRepeater(withStock: false, withPriceList: true),
                 ])->columns(1),
 
                 Section::make('Payment Detail')->schema([

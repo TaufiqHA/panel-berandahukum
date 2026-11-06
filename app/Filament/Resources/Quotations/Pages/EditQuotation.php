@@ -38,7 +38,7 @@ class EditQuotation extends EditRecord
     {
         $data['use_ppn'] = (float) ($data['ppn'] ?? 0) > 0;
 
-        return $this->fillLineItems($data);
+        return $this->fillLineItems($data, fallbackToBarangPrice: true);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array

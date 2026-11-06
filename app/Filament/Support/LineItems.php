@@ -9,6 +9,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\RawJs;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
@@ -138,17 +139,25 @@ class LineItems
     /**
      * Repeater for barang-only line items (Purchase Order, Quotation, Invoice).
      */
-    public static function barangRepeater(bool $withStock = false): Repeater
+    public static function barangRepeater(bool $withStock = false, bool $withPriceList = false): Repeater
     {
-        $schema = [
-            Select::make('barang_id')
-                ->label('Pilih Barang')
-                ->options(fn (): array => self::barangOptions())
-                ->wrapOptionLabels(false)->searchable()
-                ->live()
-                ->getOptionLabelUsing(fn ($value): ?string => Barang::withTrashed()->find($value)?->nama_product)
-                ->required(),
-        ];
+        $barangSelect = Select::make('barang_id')
+            ->label('Pilih Barang')
+            ->options(fn (): array => self::barangOptions())
+            ->wrapOptionLabels(false)->searchable()
+            ->live()
+            ->getOptionLabelUsing(fn ($value): ?string => Barang::withTrashed()->find($value)?->nama_product)
+            ->required();
+
+        if ($withPriceList) {
+            $barangSelect->afterStateUpdated(function (mixed $state, Set $set): void {
+                $harga = Barang::withTrashed()->find($state)?->harga;
+
+                $set('price', number_format((float) ($harga ?? 0), 0, ',', '.'));
+            });
+        }
+
+        $schema = [$barangSelect];
 
         if ($withStock) {
             $schema[] = Placeholder::make('stock')

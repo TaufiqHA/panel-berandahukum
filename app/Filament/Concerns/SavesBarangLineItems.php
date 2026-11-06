@@ -3,7 +3,9 @@
 namespace App\Filament\Concerns;
 
 use App\Filament\Support\LineItems;
+use App\Models\Barang;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 trait SavesBarangLineItems
 {
@@ -38,19 +40,35 @@ trait SavesBarangLineItems
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    protected function fillLineItems(array $data): array
+    protected function fillLineItems(array $data, bool $fallbackToBarangPrice = false): array
     {
         $model = $this->lineItemModel();
         $foreignKey = $this->lineItemForeignKey();
 
-        $data['items'] = $model::where($foreignKey, $this->record->id)
-            ->get()
-            ->map(fn ($detail): array => [
-                'barang_id' => $detail->barang_id,
-                'jumlah' => $detail->jumlah,
-                'price' => $detail->price,
-                'discount' => $detail->discount,
-            ])
+        $details = $model::where($foreignKey, $this->record->id)->get();
+
+        /** @var Collection<int, mixed> $barangPrices */
+        $barangPrices = $fallbackToBarangPrice
+            ? Barang::withTrashed()
+                ->whereIn('id', $details->pluck('barang_id')->filter()->unique())
+                ->pluck('harga', 'id')
+            : Collection::make();
+
+        $data['items'] = $details
+            ->map(function ($detail) use ($fallbackToBarangPrice, $barangPrices): array {
+                $price = $detail->price;
+
+                if ($fallbackToBarangPrice && (float) $price <= 0) {
+                    $price = $barangPrices[$detail->barang_id] ?? 0;
+                }
+
+                return [
+                    'barang_id' => $detail->barang_id,
+                    'jumlah' => $detail->jumlah,
+                    'price' => $price,
+                    'discount' => $detail->discount,
+                ];
+            })
             ->all();
 
         return $data;
