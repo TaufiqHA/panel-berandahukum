@@ -58,7 +58,7 @@ trait SavesBarangLineItems
             ->map(function ($detail) use ($fallbackToBarangPrice, $barangPrices): array {
                 $price = $detail->price;
 
-                if ($fallbackToBarangPrice && (float) $price <= 0) {
+                if ($fallbackToBarangPrice && (float) $price === 0.0) {
                     $price = $barangPrices[$detail->barang_id] ?? 0;
                 }
 
