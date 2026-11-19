@@ -1233,7 +1233,7 @@
 					$data_discount = 0;
 					@endphp
 					@foreach ($detail_quotation as $item)
-					@if ($item['discount'] != '')
+					@if ((float) ($item['discount'] ?? 0) > 0)
 					@php
 					$data_discount++;
 					@endphp
@@ -1251,12 +1251,12 @@
 					<td class="table-detail" style="text-align: right;padding-right: 5px;">{{ $detail['jumlah'] .' '. $detail['barang']['satuan'] }}</td>
 					<td class="table-detail" style="text-align: right;padding-right: 5px;">Rp. {{ number_format($detail['price']) }}</td>
 					@if ($data_discount > 0)
-					<td class="table-detail" style="text-align: right;padding-right: 5px;">@if($detail['discount'] != ''){{ $detail['discount'] }} % @endif</td>
+					<td class="table-detail" style="text-align: right;padding-right: 5px;">@if((float) ($detail['discount'] ?? 0) > 0){{ $detail['discount'] }} % @endif</td>
 					@endif
 					@php
 					$data_subtotal = $detail['price'] * $detail['jumlah'];
 					@endphp
-					@if ($detail['discount'] != '')
+					@if ((float) ($detail['discount'] ?? 0) > 0)
 					@php
 					$discount_barang = $data_subtotal * $detail['discount'] / 100;
 					@endphp
