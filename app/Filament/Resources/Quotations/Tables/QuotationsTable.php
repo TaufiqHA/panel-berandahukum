@@ -32,38 +32,48 @@ class QuotationsTable
             ->columns([
                 TextColumn::make('id')->limit(30)
                     ->label('Id')
+                    ->width('55px')
                     ->sortable(),
                 TextColumn::make('date')->limit(30)
                     ->label('Date')
+                    ->width('110px')
                     ->date('d M Y')
                     ->sortable(),
                 TextColumn::make('kode_quotation')->limit(30)
                     ->label('Kode Quotation')
+                    ->width('150px')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('nama_pembeli')->limit(30)
                     ->label('Nama')
+                    ->width('18%')
                     ->searchable(),
-                TextColumn::make('alamat_pembeli')->limit(30)
+                TextColumn::make('alamat_pembeli')
                     ->label('Alamat')
+                    ->width('12%')
                     ->limit(30),
                 TextColumn::make('telepon')->limit(30)
                     ->label('Telepon')
+                    ->width('120px')
                     ->placeholder('-'),
                 TextColumn::make('subtotal')->limit(30)
                     ->label('Total Pembayaran')
+                    ->width('150px')
                     ->money('IDR', divideBy: 1, decimalPlaces: 0)
                     ->sortable(),
                 TextColumn::make('status')->limit(30)
                     ->label('Status')
+                    ->width('90px')
                     ->badge()
                     ->formatStateUsing(fn ($state): string => (int) $state === 2 ? 'Draft' : 'Done')
                     ->color(fn ($state): string => (int) $state === 2 ? 'gray' : 'success'),
                 TextColumn::make('toko.nama_toko')->limit(30)
                     ->label('Toko')
+                    ->width('150px')
                     ->sortable(),
                 TextColumn::make('nama_project')->limit(30)
                     ->label('Nama Project')
+                    ->width('160px')
                     ->placeholder('-')
                     ->toggleable(),
             ])

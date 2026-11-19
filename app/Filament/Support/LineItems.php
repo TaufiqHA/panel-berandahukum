@@ -147,6 +147,7 @@ class LineItems
             ->wrapOptionLabels(false)->searchable()
             ->live()
             ->getOptionLabelUsing(fn ($value): ?string => Barang::withTrashed()->find($value)?->nama_product)
+            ->columnSpan($withStock ? 4 : 5)
             ->required();
 
         if ($withPriceList) {
@@ -162,6 +163,7 @@ class LineItems
         if ($withStock) {
             $schema[] = Placeholder::make('stock')
                 ->label('Stock')
+                ->columnSpan(1)
                 ->content(fn ($get): HtmlString => new HtmlString(self::rupiah(self::stockCount($get('barang_id'), $get('../../toko_id')))));
         }
 
@@ -171,6 +173,7 @@ class LineItems
             ->default(1)
             ->minValue(1)
             ->live()
+            ->columnSpan(1)
             ->required();
 
         $schema[] = TextInput::make('price')
@@ -179,15 +182,18 @@ class LineItems
             ->mask(RawJs::make("\$money(\$input, ',', '.', 0)"))
             ->stripCharacters('.')
             ->live()
+            ->columnSpan(3)
             ->required();
 
         $schema[] = TextInput::make('discount')
             ->label('Discount %')
             ->numeric()
-            ->live();
+            ->live()
+            ->columnSpan(1);
 
         $schema[] = Placeholder::make('subtotal')
             ->label('Jumlah')
+            ->columnSpan(2)
             ->content(fn ($get): HtmlString => new HtmlString(self::rupiah(self::lineSubtotal([
                 'price' => $get('price'),
                 'jumlah' => $get('jumlah'),
@@ -198,7 +204,7 @@ class LineItems
             ->hiddenLabel()
             ->addActionLabel('Barang')
             ->schema($schema)
-            ->columns($withStock ? 6 : 5)
+            ->columns(12)
             ->columnSpanFull();
     }
 
