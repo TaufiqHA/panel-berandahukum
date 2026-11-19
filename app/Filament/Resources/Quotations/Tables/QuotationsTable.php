@@ -46,12 +46,15 @@ class QuotationsTable
                     ->sortable(),
                 TextColumn::make('nama_pembeli')->limit(30)
                     ->label('Nama')
-                    ->width('18%')
+                    ->grow()
                     ->searchable(),
                 TextColumn::make('alamat_pembeli')
                     ->label('Alamat')
-                    ->width('12%')
-                    ->limit(30),
+                    ->width('150px')
+                    ->lineClamp(1)
+                    ->extraAttributes([
+                        'style' => 'max-width: 150px;',
+                    ]),
                 TextColumn::make('telepon')->limit(30)
                     ->label('Telepon')
                     ->width('120px')
